@@ -1,6 +1,7 @@
 export interface AppState {
+  step: number;
   rawText: string;
-  metadata: any; 
+  metadata: any;
   lexicalHashOriginal?: string;
   lexicalHashFinal?: string;
   semanticHashOriginal?: string;

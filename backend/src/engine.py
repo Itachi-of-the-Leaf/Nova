@@ -1,9 +1,16 @@
 import docx
 import ollama
+import os
 import json
 import re
 import hashlib
 from sentence_transformers import SentenceTransformer, util
+
+# The model to use for AI extraction.
+# Override by setting OLLAMA_MODEL in your environment, e.g.:
+#   set OLLAMA_MODEL=llama3  (Windows)
+#   export OLLAMA_MODEL=llama3  (Mac/Linux)
+OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'phi3:mini')
 
 # ==========================================
 # 1. TEXT EXTRACTION
@@ -56,7 +63,19 @@ def get_document_metadata(text_content):
             return "\n".join(str(v) for v in data.values())
         return str(data)
 
-    # --- PASS 1: The Header (Title, Authors, Abstract) ---
+    # ── JSON helper ────────────────────────────────────────────────────────────
+    # phi3:mini sometimes wraps its JSON in markdown code fences even when
+    # format='json' is set. Strip them before parsing so we actually get the data.
+    def _safe_json_parse(raw: str) -> dict:
+        text = raw.strip()
+        # Remove ```json ... ``` or ``` ... ``` wrapping
+        if text.startswith('```'):
+            lines = text.splitlines()
+            # Drop the first line (```json or ```) and the last (```)
+            inner = [l for l in lines[1:] if l.strip() != '```']
+            text = '\n'.join(inner).strip()
+        return json.loads(text)
+
     head_text = text_content[:3000]
     prompt_head = f"""You are a rigid Data Extractor. Extract the Title, Authors, and Abstract.
 CRITICAL: You MUST copy the Abstract EXACTLY character-for-character. Do not fix typos.
@@ -70,20 +89,21 @@ TEXT:
 {head_text}
 """
     try:
-        # Added temperature: 0.0 to prevent "and/0" hallucinations
         res_head = ollama.chat(
-            model='phi3:mini', 
-            messages=[{'role': 'user', 'content': prompt_head}], 
+            model=OLLAMA_MODEL,
+            messages=[{'role': 'user', 'content': prompt_head}],
             format='json',
-            options={'temperature': 0.0} 
+            options={'temperature': 0.0},
         )
-        head_data = json.loads(res_head['message']['content'].strip())
-        
-        metadata["title"] = flatten_to_string(head_data.get("title", ""))
-        metadata["authors"] = flatten_to_string(head_data.get("authors", ""))
+        raw_content = res_head['message']['content']
+        head_data = _safe_json_parse(raw_content)
+
+        metadata["title"]    = flatten_to_string(head_data.get("title", ""))
+        metadata["authors"]  = flatten_to_string(head_data.get("authors", ""))
         metadata["abstract"] = flatten_to_string(head_data.get("abstract", ""))
     except Exception as e:
         print(f"Header Extraction Failed: {e}")
+        print(f"  Raw LLM output: {res_head['message']['content'][:300] if 'res_head' in dir() else 'N/A'}")
 
 
     # --- PASS 2: RegEx References (Unbreakable) ---
@@ -166,7 +186,10 @@ ORIGINAL ABSTRACT:
 {abstract_text}
 """
     try:
-        response = ollama.chat(model='phi3:mini', messages=[{'role': 'user', 'content': prompt}])
+        response = ollama.chat(
+            model=OLLAMA_MODEL,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
         return response['message']['content'].strip()
     except Exception as e:
         print(f"AI Fixer Failed: {e}")
@@ -195,11 +218,21 @@ def get_semantic_chunks(text, chunk_size=2000):
     chunks.append(current_chunk.strip())
     return chunks
 
-# Load model globally so it only downloads/loads into RAM once
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# Lazy singleton — the ~90MB model loads only on first use, not at import time.
+# This prevents the server from hanging during startup/model-download.
+_model = None
+
+def _get_model():
+    global _model
+    if _model is None:
+        print("[N.O.V.A.] Loading SentenceTransformer model (first use)...")
+        _model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("[N.O.V.A.] Model loaded.")
+    return _model
 
 def calculate_semantic_similarity(original_text, modified_text):
     """Proves zero hallucination even if minor typos were fixed."""
+    model = _get_model()
     emb1 = model.encode(original_text, convert_to_tensor=True)
     emb2 = model.encode(modified_text, convert_to_tensor=True)
     cosine_scores = util.cos_sim(emb1, emb2)
@@ -213,14 +246,33 @@ def get_semantic_hash(text):
     Creates a visual 'Locality-Sensitive Hash' (LSH).
     Unlike SHA-256, similar text will produce visually similar binary strings!
     """
-    if not text.strip(): return "0" * 64
-    
-    # 1. Get the dense embedding vector
+    if not text.strip():
+        return "0" * 64
+
+    model = _get_model()
+
+    # Binarize the first 64 dimensions (1 if > 0 else 0)
     emb = model.encode(text)
-    
-    # 2. Binarize the first 64 dimensions (if > 0, it's a 1, else 0)
-    # This creates a visual fingerprint of the meaning.
     binary_hash = "".join(["1" if val > 0 else "0" for val in emb[:64]])
-    
-    # 3. Format it with spaces so it's readable for the UI (e.g., 1101 0010 ...)
+
+    # Format with spaces for readability in the UI (e.g., "1101 0010 ...")
     return " ".join(binary_hash[i:i+8] for i in range(0, len(binary_hash), 8))
+
+
+# ── Startup check ─────────────────────────────────────────────────────────────
+# Runs once when this module is first imported (i.e. when uvicorn starts).
+# Tells you immediately in the terminal if Ollama is reachable.
+def _check_ollama():
+    try:
+        ollama.list()
+        print(f"[N.O.V.A.] ✅ Ollama is reachable. Using model: '{OLLAMA_MODEL}'")
+        # Check if the model is actually pulled
+        models = [m['model'] for m in ollama.list().get('models', [])]
+        if not any(OLLAMA_MODEL in m for m in models):
+            print(f"[N.O.V.A.] ⚠️  Model '{OLLAMA_MODEL}' is NOT pulled yet!")
+            print(f"[N.O.V.A.] ⚠️  Run:  ollama pull {OLLAMA_MODEL}")
+    except Exception as e:
+        print(f"[N.O.V.A.] ⚠️  Ollama is NOT reachable: {e}")
+        print("[N.O.V.A.] ⚠️  Start Ollama with:  ollama serve")
+
+_check_ollama()

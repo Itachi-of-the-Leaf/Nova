@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { AppState } from '../../types';
 import { FileDown, CheckCircle2, RefreshCcw, FileText, ShieldCheck, FileCode, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion'; // Usually framer-motion in Vite/React
+import { motion } from 'motion/react';
+import { API_BASE } from '../../config';
 
 // Added 'state' to the props so we can send the data to the backend
 export function DownloadStep({ state, onReset }: { state: AppState, onReset: () => void }) {
@@ -11,7 +12,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/download/pdf', {
+      const response = await fetch(`${API_BASE}/download/pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -19,9 +20,9 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
           raw_text: state.rawText
         })
       });
-      
+
       if (!response.ok) throw new Error("PDF generation failed");
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -29,6 +30,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
       a.download = "NOVA_Manuscript.pdf";
       document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Download Error:", error);
@@ -42,7 +44,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
   const handleDownloadReport = async () => {
     setIsDownloading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/download/report', {
+      const response = await fetch(`${API_BASE}/download/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -50,9 +52,9 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
           raw_text: state.rawText
         })
       });
-      
+
       if (!response.ok) throw new Error("Report generation failed");
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -60,6 +62,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
       a.download = "NOVA_Integrity_Report.txt";
       document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Report Error:", error);
@@ -76,7 +79,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
 
   return (
     <div className="max-w-4xl mx-auto py-20 px-4 text-center">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
@@ -97,7 +100,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
-        <DownloadButton 
+        <DownloadButton
           icon={<FileText className="w-6 h-6" />}
           label="Download IEEE PDF"
           color="bg-slate-900"
@@ -105,7 +108,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
           onClick={handleDownloadPDF}
           disabled={isDownloading}
         />
-        <DownloadButton 
+        <DownloadButton
           icon={<FileCode className="w-6 h-6" />}
           label="Download Compliant DOCX"
           color="bg-slate-900"
@@ -113,7 +116,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
           onClick={handleDownloadDOCX}
           disabled={isDownloading}
         />
-        <DownloadButton 
+        <DownloadButton
           icon={<ShieldCheck className="w-6 h-6" />}
           label="Download Integrity Report"
           color="bg-amber-500"
@@ -128,7 +131,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
       >
-        <button 
+        <button
           onClick={onReset}
           className="inline-flex items-center gap-3 text-slate-400 hover:text-slate-900 font-bold uppercase tracking-widest text-xs transition-colors group"
         >

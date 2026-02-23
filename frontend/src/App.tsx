@@ -61,7 +61,7 @@ export default function App() {
       case 4:
         return <FinalizeStep state={state} onNext={nextStep} />;
       case 5:
-        return <DownloadStep onReset={resetApp} />;
+        return <DownloadStep state={state} onReset={resetApp} />;
       default:
         return <UploadStep onNext={nextStep} />;
     }
@@ -70,7 +70,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <StepTracker currentStep={state.step} />
-      
+
       <main className="flex-1 container mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
           <motion.div

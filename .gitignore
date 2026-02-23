@@ -1,0 +1,21 @@
+# --- OS Specific ---
+*.Zone.Identifier
+.DS_Store
+Thumbs.db
+
+# --- Python / Backend ---
+**/__pycache__/
+*.py[cod]
+*$py.class
+backend/output.log
+
+# --- Node / Frontend ---
+# We use '**/node_modules/' to catch it anywhere (standard monorepo practice)
+**/node_modules/
+frontend/dist/
+frontend/build/
+frontend/coverage/
+
+# --- Environment Secrets ---
+.env*
+!.env.example

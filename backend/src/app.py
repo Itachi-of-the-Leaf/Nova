@@ -1,6 +1,6 @@
 import streamlit as st
-import engine
-import formatter
+import Nova.backend.src.engine as engine
+import Nova.backend.src.formatter as formatter
 import time
 
 # --- 1. Page Configuration & CSS ---

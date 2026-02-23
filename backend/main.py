@@ -3,7 +3,7 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
-import engine
+import Nova.backend.src.engine as engine
 
 
 app = FastAPI()
@@ -68,7 +68,7 @@ class GenerateRequest(BaseModel):
 
 @app.post("/download/pdf")
 async def download_pdf(req: GenerateRequest):
-    import formatter # Your LaTeX compiler
+    import Nova.backend.src.formatter as formatter # Your LaTeX compiler
     try:
         pdf_bytes = formatter.generate_pdf(req.metadata, req.raw_text)
         if not pdf_bytes or isinstance(pdf_bytes, str):

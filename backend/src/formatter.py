@@ -1,49 +1,153 @@
 import os
+import re
 import subprocess
 
-# Anchor all LaTeX-related files to backend/data/ so the paths work regardless
-# of which directory uvicorn/Python is launched from.
-# formatter.py lives in backend/src/, so we go one level up to reach backend/data/.
 DATA_DIR     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
 TEMPLATE_TEX = os.path.join(DATA_DIR, "template.tex")
 OUTPUT_TEX   = os.path.join(DATA_DIR, "output.tex")
 OUTPUT_PDF   = os.path.join(DATA_DIR, "output.pdf")
+OUTPUT_LOG   = os.path.join(DATA_DIR, "output.log")
+
+
+def _latex_escape(text: str) -> str:
+    """Escape characters that have special meaning in LaTeX."""
+    replacements = [
+        ('\\', r'\textbackslash{}'),   # must be first
+        ('&',  r'\&'),
+        ('%',  r'\%'),
+        ('$',  r'\$'),
+        ('#',  r'\#'),
+        ('_',  r'\_'),
+        ('{',  r'\{'),
+        ('}',  r'\}'),
+        ('~',  r'\textasciitilde{}'),
+        ('^',  r'\textasciicircum{}'),
+    ]
+    for char, escaped in replacements:
+        text = text.replace(char, escaped)
+    return text
+
+
+def _convert_headings(text: str) -> str:
+    """
+    Convert @@H1@@...@@END@@ markers into LaTeX section commands.
+    Plain text lines are LaTeX-escaped as-is.
+    """
+    lines = text.split('\n')
+    latex_lines = []
+    for line in lines:
+        m1 = re.match(r'@@H1@@(.+?)@@END@@', line)
+        m2 = re.match(r'@@H2@@(.+?)@@END@@', line)
+        m3 = re.match(r'@@H3@@(.+?)@@END@@', line)
+        if m1:
+            latex_lines.append(f'\n\\section{{{_latex_escape(m1.group(1))}}}\n')
+        elif m2:
+            latex_lines.append(f'\n\\subsection{{{_latex_escape(m2.group(1))}}}\n')
+        elif m3:
+            latex_lines.append(f'\n\\subsubsection{{{_latex_escape(m3.group(1))}}}\n')
+        else:
+            latex_lines.append(_latex_escape(line))
+    return '\n'.join(latex_lines)
+
+
+def _apply_metadata_headings(body_text: str, headings_str: str, metadata: dict) -> str:
+    """
+    Tag lines in body_text that match known section headings.
+    Skips headings that look like the title, authors, or abstract —
+    those are already handled by the LaTeX template header.
+    """
+    if not headings_str:
+        return body_text
+
+    title   = (metadata.get('title',   '') or '').lower().strip()
+    authors = (metadata.get('authors', '') or '').lower().strip()
+
+    # Only skip headings that are already rendered by the template header
+    SKIP_WORDS = {'abstract'}
+
+    raw_headings = re.split(r'[\n,;]+', headings_str)
+    headings = [h.strip() for h in raw_headings if h.strip()]
+
+    for heading in headings:
+        h_lower = heading.lower()
+
+        # Skip if it matches (or is contained in) the title or authors
+        if h_lower in title or title in h_lower:
+            continue
+        if h_lower in authors or authors in h_lower:
+            continue
+        if h_lower in SKIP_WORDS:
+            continue
+        # Skip very long "headings" — likely a sentence, not a heading
+        if len(heading) > 120:
+            continue
+
+        pattern = rf'^({re.escape(heading)})$'
+        body_text = re.sub(
+            pattern,
+            r'@@H1@@\1@@END@@',
+            body_text,
+            count=1,  # only tag the FIRST occurrence — prevents duplicate headings
+            flags=re.MULTILINE | re.IGNORECASE
+        )
+
+    return body_text
 
 
 def generate_pdf(metadata, body_text):
     """
-    Takes verified data, injects it into template.tex,
-    and compiles it using the IEEEtran.cls stored in backend/data/.
+    Injects metadata into template.tex (escaping LaTeX special chars and
+    converting heading markers), then compiles with pdflatex.
+    Returns raw PDF bytes on success, or raises RuntimeError on failure.
     """
     try:
-        # 1. Read the LaTeX skeleton from the fixed data directory
-        with open(TEMPLATE_TEX, "r") as f:
+        with open(TEMPLATE_TEX, "r", encoding="utf-8") as f:
             tex_content = f.read()
 
-        # 2. Inject verified metadata
-        tex_content = tex_content.replace("[[TITLE]]",    metadata.get('title', 'Untitled'))
-        tex_content = tex_content.replace("[[AUTHORS]]",  metadata.get('authors', 'Anonymous'))
-        tex_content = tex_content.replace("[[ABSTRACT]]", metadata.get('abstract', ''))
-        tex_content = tex_content.replace("[[BODY]]",     body_text)
+        # Escape metadata fields, convert body headings to LaTeX sections
+        tex_content = tex_content.replace("[[TITLE]]",    _latex_escape(metadata.get('title',    'Untitled')))
+        tex_content = tex_content.replace("[[AUTHORS]]",  _latex_escape(metadata.get('authors',  'Anonymous')))
+        tex_content = tex_content.replace("[[ABSTRACT]]", _latex_escape(metadata.get('abstract', '')))
+        # Tag known section headings using LLM-extracted list, filtered against title/authors
+        headings_str = metadata.get('headings', '')
+        tagged_body  = _apply_metadata_headings(body_text, headings_str, metadata)
 
-        # 3. Write the populated .tex to the data directory
-        with open(OUTPUT_TEX, "w") as f:
+        # Strip everything before the first @@H1@@ marker so the preamble
+        # (title, author line, abstract text) doesn't appear twice in the PDF.
+        # If no markers exist, the full body is used as-is.
+        first_marker = tagged_body.find('@@H1@@')
+        if first_marker > 0:
+            tagged_body = tagged_body[first_marker:]
+
+        tex_content = tex_content.replace("[[BODY]]", _convert_headings(tagged_body))
+
+        with open(OUTPUT_TEX, "w", encoding="utf-8") as f:
             f.write(tex_content)
 
-        # 4. Run pdflatex with cwd=DATA_DIR so that IEEEtran.cls (which lives
-        #    in the same data/ folder) is found automatically by the LaTeX engine.
-        subprocess.run(
+        result = subprocess.run(
             ["pdflatex", "-interaction=nonstopmode", OUTPUT_TEX],
             cwd=DATA_DIR,
-            check=True,
             capture_output=True,
         )
 
-        # 5. Return the compiled PDF bytes
+        if result.returncode != 0:
+            log = ""
+            if os.path.exists(OUTPUT_LOG):
+                with open(OUTPUT_LOG, "r", encoding="utf-8", errors="replace") as f:
+                    log = f.read()
+            error_line = next(
+                (line for line in log.splitlines() if line.startswith("!")),
+                result.stderr.decode(errors="replace") or "Unknown LaTeX error"
+            )
+            raise RuntimeError(f"LaTeX compile error: {error_line}")
+
         if os.path.exists(OUTPUT_PDF):
             with open(OUTPUT_PDF, "rb") as f:
                 return f.read()
-        return None
 
+        raise RuntimeError("pdflatex ran but produced no output.pdf")
+
+    except RuntimeError:
+        raise
     except Exception as e:
-        return f"Formatting Error: {str(e)}".encode()
+        raise RuntimeError(f"Formatter Error: {e}") from e

@@ -17,20 +17,22 @@ OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'phi3:mini')
 # ==========================================
 def extract_text_from_docx(file_path):
     """
-    Extracts all text from a .docx file and returns it as a single string.
+    Extracts all text from a .docx file as plain text.
+    Heading detection is handled by formatter.py using LLM-extracted metadata.
     """
     try:
         doc = docx.Document(file_path)
         extracted_paragraphs = []
-        
+
         for para in doc.paragraphs:
             clean_text = para.text.strip()
             if clean_text:
                 extracted_paragraphs.append(clean_text)
-                
+
         return '\n'.join(extracted_paragraphs)
     except Exception as e:
         return f"An error occurred during extraction: {str(e)}"
+
 
 
 # ==========================================

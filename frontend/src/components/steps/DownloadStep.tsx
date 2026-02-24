@@ -4,77 +4,72 @@ import { FileDown, CheckCircle2, RefreshCcw, FileText, ShieldCheck, FileCode, Lo
 import { motion } from 'motion/react';
 import { API_BASE } from '../../config';
 
-// Added 'state' to the props so we can send the data to the backend
 export function DownloadStep({ state, onReset }: { state: AppState, onReset: () => void }) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Function to download the compiled IEEE PDF
+  /** Reusable blob-download helper */
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  /** Reusable POST-to-backend helper */
+  const postDownload = async (endpoint: string): Promise<Blob> => {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ metadata: state.metadata, raw_text: state.rawText }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Unknown server error' }));
+      throw new Error(err.detail ?? 'Request failed');
+    }
+    return response.blob();
+  };
+
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     try {
-      const response = await fetch(`${API_BASE}/download/pdf`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: state.metadata,
-          raw_text: state.rawText
-        })
-      });
-
-      if (!response.ok) throw new Error("PDF generation failed");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = "NOVA_Manuscript.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Download Error:", error);
-      alert("Failed to generate PDF. Check the Python backend terminal for LaTeX errors.");
+      const blob = await postDownload('/download/pdf');
+      downloadBlob(blob, 'NOVA_Manuscript.pdf');
+    } catch (error: any) {
+      console.error('PDF Error:', error);
+      alert(`PDF generation failed:\n\n${error.message}\n\nMake sure pdflatex is installed (MiKTeX or TeX Live).`);
     } finally {
       setIsDownloading(false);
     }
   };
 
-  // Function to download the Integrity Report
+  const handleDownloadDOCX = async () => {
+    setIsDownloading(true);
+    try {
+      const blob = await postDownload('/download/docx');
+      downloadBlob(blob, 'NOVA_Manuscript.docx');
+    } catch (error: any) {
+      console.error('DOCX Error:', error);
+      alert(`DOCX generation failed:\n\n${error.message}`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleDownloadReport = async () => {
     setIsDownloading(true);
     try {
-      const response = await fetch(`${API_BASE}/download/report`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: state.metadata,
-          raw_text: state.rawText
-        })
-      });
-
-      if (!response.ok) throw new Error("Report generation failed");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = "NOVA_Integrity_Report.txt";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Report Error:", error);
-      alert("Failed to generate Report.");
+      const blob = await postDownload('/download/report');
+      downloadBlob(blob, 'NOVA_Integrity_Report.txt');
+    } catch (error: any) {
+      console.error('Report Error:', error);
+      alert(`Report generation failed:\n\n${error.message}`);
     } finally {
       setIsDownloading(false);
     }
-  };
-
-  // DOCX download is typically handled similarly, but we'll put a placeholder alert for now
-  const handleDownloadDOCX = () => {
-    alert("DOCX generator module initializing... This feature will use python-docx in the final version.");
   };
 
   return (
@@ -82,17 +77,13 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
         className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-10 shadow-[0_0_40px_rgba(16,185,129,0.2)]"
       >
         <CheckCircle2 className="w-12 h-12" />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <h1 className="text-5xl font-black text-slate-900 mb-6 tracking-tight">Success! Your Files are Ready.</h1>
         <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed mb-16">
           N.O.V.A. has finalized your academic manuscript. All cryptographic proofs have been bundled into the integrity report.
@@ -126,11 +117,7 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
         />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
         <button
           onClick={onReset}
           className="inline-flex items-center gap-3 text-slate-400 hover:text-slate-900 font-bold uppercase tracking-widest text-xs transition-colors group"
@@ -143,8 +130,11 @@ export function DownloadStep({ state, onReset }: { state: AppState, onReset: () 
   );
 }
 
-// Updated button component to handle clicks and loading states
-function DownloadButton({ icon, label, color, delay, onClick, disabled }: { icon: React.ReactNode, label: string, color: string, delay: number, onClick: () => void, disabled: boolean }) {
+function DownloadButton({
+  icon, label, color, delay, onClick, disabled,
+}: {
+  icon: React.ReactNode; label: string; color: string; delay: number; onClick: () => void; disabled: boolean;
+}) {
   return (
     <motion.button
       initial={{ opacity: 0, y: 20 }}

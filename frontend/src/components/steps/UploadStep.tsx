@@ -20,8 +20,14 @@ export function UploadStep({ onNext }: { onNext: (data: any) => void }) {
     setStatus('Uploading & computing integrity hash...');
     setProgress(20);
 
+    // No client-side timeout — phi3:mini can take 2-4 min on large documents.
+    // A timeout here causes 'AbortError: signal is aborted without reason'.
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120_000); // 2 min for LLM
+
+    // After 30s, update the status so the user knows we're still working
+    const stillWorkingTimer = setTimeout(() => {
+      setStatus('AI is thinking... (this can take 1–3 min for large documents)');
+    }, 30_000);
 
     try {
       const formData = new FormData();
@@ -36,7 +42,7 @@ export function UploadStep({ onNext }: { onNext: (data: any) => void }) {
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
+      clearTimeout(stillWorkingTimer);
 
       if (!response.ok) {
         const text = await response.text();
@@ -52,14 +58,15 @@ export function UploadStep({ onNext }: { onNext: (data: any) => void }) {
           rawText: data.raw_text,
           metadata: data.metadata,
           lexicalHashOriginal: data.lexical_hash,
+          semanticHashOriginal: data.semantic_hash,
           fileName: file.name,
         });
       }, 800);
 
     } catch (err: any) {
-      clearTimeout(timeoutId);
+      clearTimeout(stillWorkingTimer);
       const msg = err?.name === 'AbortError'
-        ? 'Request timed out. The LLM took too long — try again.'
+        ? 'Upload was cancelled.'
         : err?.message ?? 'Unknown error';
       console.error('Upload Error:', err);
       setError(msg);

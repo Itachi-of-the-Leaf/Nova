@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.2.24)  25 FEB 2026 01:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.2.24)  25 FEB 2026 07:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -264,78 +264,392 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 
 (D:\MikTeX\tex/latex/00miktex\epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
-)) [1{C:/Users/kulka/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{D:/MikTe
-X/fonts/enc/dvips/base/8r.enc}
+))
+Overfull \hbox (18.0469pt too wide) in paragraph at lines 10--10
+ [] 
+ []
+
+
+Overfull \hbox (18.0469pt too wide) in paragraph at lines 10--10
+ [] 
+ []
+
+
+Overfull \hbox (18.0469pt too wide) in paragraph at lines 10--10
+ [] 
+ []
+
+[1{C:/Users/kulka/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{D:/MikTeX/f
+onts/enc/dvips/base/8r.enc}
 
 
 ]
-[2] [3] [4] [5]
-Underfull \hbox (badness 6032) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 (pp. 63-80). Newcastle-upon-Tyne: Cam-bridge Schol-ars
+Underfull \hbox (badness 2781) in paragraph at lines 47--54
+\OT1/ptm/m/n/10 pre-dic-tive power of in-tri-cate neu-ral ar-chi-tec-tures whil
+e
  []
 
 
-Underfull \hbox (badness 2302) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 for teach-ers. British Coun-cil, Lon-don. Kukulska-Hulme,
+Underfull \hbox (badness 3078) in paragraph at lines 47--54
+\OT1/ptm/m/n/10 to great ef-fect with imitation-trained lan-guage mod-els,
  []
 
 
-Underfull \hbox (badness 3219) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 lan-guage learn-ing: From con-tent de-liv-ery to sup-ported
+Underfull \hbox (badness 3884) in paragraph at lines 47--54
+\OT1/ptm/m/n/10 represen- tations from the in-her-ently un-struc-tured and
  []
 
 
-Underfull \hbox (badness 2626) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 col-lab-o-ra-tion and in-ter-ac-tion. Re-CALL, 20(3), 271-289.
+Underfull \hbox (badness 10000) in paragraph at lines 47--54
+\OT1/ptm/m/n/10 [14, 29]. 1https://github.com/isletennos/MMVC[]Trainer
  []
 
 
-Underfull \hbox (badness 2894) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 au-ton-omy 1: Def-i-ni-tions, is-sues and prob-lems. Dublin:
+Underfull \hbox (badness 10000) in paragraph at lines 47--54
+\OT1/ptm/m/n/10 2https://github.com/svc-develop-team/so-vits-
  []
 
 
-Underfull \hbox (badness 4792) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 of pre-ser-vice En-glish teach-ers' per-cep-tions of mo-bile
+Underfull \hbox (badness 10000) in paragraph at lines 47--54
+\OT1/ptm/m/n/10 svc 3https://github.com/yxlllc/DDSP-SVC
  []
 
 
-Underfull \hbox (badness 2884) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 as-sisted lan-guage learn-ing. En-glish Lan-guage Teach-ing,
+Underfull \hbox (badness 10000) in paragraph at lines 47--54
+\OT1/ptm/m/n/10 4https://github.com/RVC-Project/Retrieval-based-Voice-
  []
 
 
-Underfull \hbox (badness 1406) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 (pp. 37-52). Cam-bridge: Cam-bridge Schol-ars Pub-lish-ing.
+Underfull \hbox (badness 10000) in paragraph at lines 47--54
+\OT1/ptm/m/n/10 Conversion-WebUI 5https://github.com/w-okada/voice-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 from http://llt.msu.edu/issues/june2016/reinderswhite.pdf.
+Underfull \hbox (badness 4378) in paragraph at lines 71--74
+[]\OT1/ptm/m/n/10 We adopt the multi-period dis-crim-i-na-tor ar-chi-tec-ture
  []
 
 
-Underfull \hbox (badness 1642) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 Rein-ders, H. & Cho, M. (2011). En-cour-ag-ing in-for-mal
+Underfull \hbox (badness 10000) in paragraph at lines 71--74
+\OT1/ptm/m/n/10 of VITS6, with dis-crim-i-na-tor pe-ri-ods of [2, 3,
  []
 
 
-Underfull \hbox (badness 3158) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 3-29. Stock-well, G. (2007). Vo-cab-u-lary on the move:
+Underfull \hbox (badness 10000) in paragraph at lines 71--74
+\OT1/ptm/m/n/10 5, 7, 11, 17, 23, 37] in-spired by RVC's7 v2
  []
 
 
-Underfull \hbox (badness 1478) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 J. (2004). Mo-bile EL-DIT: Chal-lenges in the tran-si-tions
+Underfull \hbox (badness 10000) in paragraph at lines 71--74
+\OT1/ptm/m/n/10 dis-crim-i-na-tor. 6https://github.com/jaywalnut310/vits
  []
 
 
-Overfull \hbox (6.76741pt too wide) in paragraph at lines 137--170
-\OT1/ptm/m/n/10 http://eprints.biblio.unitn.it/archive/00000532/01/paper4911.pd
-f.
+Underfull \hbox (badness 10000) in paragraph at lines 71--74
+\OT1/ptm/m/n/10 7https://github.com/RVC-Project/Retrieval-based-Voice-
  []
 
-[6]
+[2]
+
+! LaTeX Error: Unicode character ∗ (U+2217)
+               not set up for use with LaTeX.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.90 ...e chunk is composed of dec\_chunk\_len ∗
+                                                   L samples. Inference addi...
+
+You may provide a definition with
+\DeclareUnicodeCharacter 
+
+
+! LaTeX Error: Unicode character ∗ (U+2217)
+               not set up for use with LaTeX.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.91 (dec\_chunk\_len ∗
+                          L + 2L)/Fs	(1)
+You may provide a definition with
+\DeclareUnicodeCharacter 
+
+
+Underfull \hbox (badness 2443) in paragraph at lines 104--106
+[]\OT1/ptm/m/n/10 Compared to the VITS dis-crim-i-na-tor, the HiFi-GAN
+ []
+
+
+Underfull \hbox (badness 3977) in paragraph at lines 104--106
+\OT1/ptm/m/n/10 dis-crim-i-na-tor uses fewer multi-period sub-discriminators
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 104--106
+\OT1/ptm/m/n/10 at smaller pe-riod sizes, and more multi-scale sub-
+ []
+
+
+Underfull \hbox (badness 3849) in paragraph at lines 104--106
+\OT1/ptm/m/n/10 discriminators at larger pe-riod sizes. We re-duced the
+ []
+
+
+Underfull \hbox (badness 3108) in paragraph at lines 104--106
+\OT1/ptm/m/n/10 and train-ing step count iden-ti-cal to LLVC. We la-bel
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 104--106
+\OT1/ptm/m/n/10 this ex-per-i-ment LLVC-HFG in our com-par-isons.
+ []
+
+
+Overfull \hbox (68.82666pt too wide) in paragraph at lines 104--106
+\OT1/ptm/m/n/10 8https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/p
+retrained[]v2 
+ []
+
+[3]
+Underfull \hbox (badness 4316) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 PeerJ Com-puter Sci-ence, 7, 2021. doi: 10.7717/peerj-
+ []
+
+
+Underfull \hbox (badness 5231) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 ex-ten-sion and speech en-hance-ment. In ICASSP 2023
+ []
+
+
+Underfull \hbox (badness 6876) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 - 2023 IEEE In-ter-na-tional Con-fer-ence on Acous-tics,
+ []
+
+
+Underfull \hbox (badness 8000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Speech and Sig-nal Pro-cess-ing (ICASSP). IEEE, jun
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 2023. doi: 10.1109/icassp49357.2023.10097255. URL
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 https://doi.org/10.1109%2Ficassp49357.2023.10097255.
+ []
+
+
+Underfull \hbox (badness 1895) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Again-vc: A one-shot voice con-ver-sion us-ing ac-ti-va-tion
+ []
+
+
+Underfull \hbox (badness 3281) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Close, William Raven-scroft, Thomas Hain, and Ste-fan
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Goetze. Per-ceive and pre-dict: Self-supervised speech
+ []
+
+
+Underfull \hbox (badness 1845) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 on Acous-tics, Speech and Sig-nal Pro-cess-ing (ICASSP).
+ []
+
+
+Underfull \hbox (badness 1859) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Dacheng Tao. Knowl-edge dis-til-la-tion: A sur-vey. CoRR,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 9https://github.com/resemble-ai/Resemblyzer
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 10https://github.com/AndreevP/wvmos 11https://koe.ai/
+ []
+
+
+Underfull \hbox (badness 2512) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Ishig-uro. Quickvc: Any-to-many voice con-ver-sion us-ing
+ []
+
+
+Underfull \hbox (badness 3219) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Sil[]en, and M. Gab-bouj. On the im-pact of align-ment
+ []
+
+
+Underfull \hbox (badness 1838) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 on voice con-ver-sion per-for-mance. In In-ter-speech, 2008.
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 URL https://api.semanticscholar.org/CorpusID: 6546071.
+ []
+
+
+Underfull \hbox (badness 3977) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Tzu hsien Huang, Jheng hao Lin, Chien yu Huang,
+ []
+
+
+Underfull \hbox (badness 2521) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 con-ver-sion: A sur-vey, 2021. Masaya Kawa-mura, Yuma
+ []
+
+
+Underfull \hbox (badness 4595) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Shi-ra-hata, Ryuichi Ya-mamoto, and Ken-taro Tachibana.
+ []
+
+
+Underfull \hbox (badness 7576) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Lightweight and high-fidelity end-to-end text-to-speech
+ []
+
+
+Underfull \hbox (badness 2680) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 learn-ing for end-to-end text-to-speech, 2021. Songx-i-ang
+ []
+
+
+Underfull \hbox (badness 3965) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 and He-len Meng. Any-to-many voice con-ver-sion with
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 29:1717{1728, 2021. doi: 10.1109/taslp.2021.3076867.
+ []
+
+
+Underfull \hbox (badness 2229) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 dis-til-la-tion lever-ag-ing al-ter-na-tive soft tar-gets from 
+non-
+ []
+
+
+Underfull \hbox (badness 4242) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 URL https://api.semanticscholar. org/CorpusID:245219014.
+ []
+
+
+Underfull \hbox (badness 1845) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 on Acous-tics, Speech and Sig-nal Pro-cess-ing (ICASSP),
+ []
+
+
+Underfull \hbox (badness 4518) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 and Mark Hasegawa-Johnson. Au-tovc: Zero-shot voice
+ []
+
+
+Underfull \hbox (badness 1590) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 style trans-fer with only au-toen-coder loss, 2019. Kaizhi
+ []
+
+
+Underfull \hbox (badness 1552) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Qian, Zeyu Jin, Mark Hasegawa-Johnson, and Gau-tham
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 J. Mysore. F0-consistent many-to-many non- par-al-lel
+ []
+
+
+Underfull \hbox (badness 5548) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Speech and Sig-nal Pro-cess-ing (ICASSP). IEEE, may
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 2020. doi: 10.1109/icassp40776.2020.9054734. URL
+ []
+
+
+Underfull \hbox (badness 6300) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 An im-proved self-supervised speech rep-re-sen-ta-tion by
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 URL https://api.semanticscholar.org/CorpusID:239711801.
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Stephen Shum. Prob-a-bilis-tic voice con-ver-sion us-ing
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 gaus-sian mix-ture mod-els, 2008. URL https://people.
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 csail.mit.edu/sshum/ucb[]papers/voice[]conv.pdf. Chris-tian
+ []
+
+
+Underfull \hbox (badness 3108) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 loss func-tions in Py-Torch. In Dig-i-tal Mu-sic Re-search
+ []
+
+
+Underfull \hbox (badness 1997) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Net-work One-day Work-shop (DMRN+15), 2020. Daniel
+ []
+
+
+Underfull \hbox (badness 3333) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Stoller, Mi Tian, Se-bas-tian Ew-ert, and Si-mon Dixon.
+ []
+
+
+Underfull \hbox (badness 2334) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Seq-u-net: A one-dimensional causal u-net for ef-fi-cient
+ []
+
+
+Underfull \hbox (badness 2922) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 An instruction-following llama model, 2023. Jean-Marc
+ []
+
+
+Underfull \hbox (badness 1424) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 syn-the-sis through lin-ear pre-dic-tion, 2019. Ben-jamin van
+ []
+
+
+Underfull \hbox (badness 1845) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 on Acous-tics, Speech and Sig-nal Pro-cess-ing (ICASSP).
+ []
+
+
+Underfull \hbox (badness 6978) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 URL https://doi.org/10.1109%2Ficassp43922.2022.9746484.
+ []
+
+
+Underfull \hbox (badness 2707) in paragraph at lines 145--176
+\OT1/ptm/m/n/10 Dan, and Yueguo Chen. Rmvpe: A ro-bust model for
+ []
+
+[4]
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -347,7 +661,7 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[7
+[5
 
 ] (output.aux)
  ***********
@@ -357,17 +671,18 @@ L3 programming layer <2026-01-19>
  ) 
 Here is how much of TeX's memory you used:
  3411 strings out of 467867
- 52677 string characters out of 5435169
- 479025 words of memory out of 5000000
- 32304 multiletter control sequences out of 15000+600000
- 655952 words of font info for 87 fonts, out of 8000000 for 9000
+ 52675 string characters out of 5435169
+ 474932 words of memory out of 5000000
+ 32303 multiletter control sequences out of 15000+600000
+ 657088 words of font info for 88 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 57i,8n,65p,2385b,266s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,8n,65p,1178b,266s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <D:/MikTeX/fonts/type1/urw/times/utmb8a.pfb><D:/MikTeX/fonts/type1/urw/times/
-utmbi8a.pfb><D:/MikTeX/fonts/type1/urw/times/utmr8a.pfb>
-Output written on output.pdf (7 pages, 80584 bytes).
+utmbi8a.pfb><D:/MikTeX/fonts/type1/urw/times/utmr8a.pfb><D:/MikTeX/fonts/type1/
+urw/times/utmri8a.pfb>
+Output written on output.pdf (5 pages, 83772 bytes).
 PDF statistics:
- 42 PDF objects out of 1000 (max. 8388607)
+ 39 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

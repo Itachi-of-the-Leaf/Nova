@@ -116,12 +116,39 @@ def generate_pdf(metadata, body_text):
         headings_str = metadata.get('headings', '')
         tagged_body  = _apply_metadata_headings(body_text, headings_str, metadata)
 
-        # Strip everything before the first @@H1@@ marker so the preamble
-        # (title, author line, abstract text) doesn't appear twice in the PDF.
-        # If no markers exist, the full body is used as-is.
-        first_marker = tagged_body.find('@@H1@@')
-        if first_marker > 0:
-            tagged_body = tagged_body[first_marker:]
+        # ── Strip Preamble ──────────────────────────────────────────────
+        # Find the first real section marker. The naive way (find the first @@H1@@)
+        # fails if a DOCX style spuriously tagged the title or author line as a heading.
+        # Instead, we look for 'Introduction' or the first LLM-extracted heading.
+        cut_index = -1
+        intro_match = re.search(r'@@H[123]@@(I\.?\s*)?Introduction@@END@@', tagged_body, re.IGNORECASE)
+        if intro_match:
+            cut_index = intro_match.start()
+        else:
+            # Fallback: cut at the first marker that comes AFTER the abstract text
+            # (to avoid cutting at a spurious title marker)
+            abstract_text = metadata.get('abstract', '').strip()
+            if abstract_text and abstract_text in tagged_body:
+                after_abs = tagged_body.find(abstract_text) + len(abstract_text)
+                first_marker = tagged_body.find('@@H', after_abs)
+                if first_marker != -1:
+                    cut_index = first_marker
+            else:
+                # Last resort: just cut at the first marker
+                cut_index = tagged_body.find('@@H')
+
+        if cut_index > 0:
+            tagged_body = tagged_body[cut_index:]
+
+        # Finally, strip any hardcoded Roman numerals from the tagged headings
+        # because \section{} generates its own Roman numerals.
+        # Matches @@H1@@ I. Introduction @@END@@  ->  @@H1@@ Introduction @@END@@
+        tagged_body = re.sub(
+            r'(@@H[123]@@)\s*(?:[IVXLCDM]+\.|[0-9]+\.)\s*(.*?)(@@END@@)',
+            r'\1\2\3',
+            tagged_body,
+            flags=re.IGNORECASE
+        )
 
         tex_content = tex_content.replace("[[BODY]]", _convert_headings(tagged_body))
 

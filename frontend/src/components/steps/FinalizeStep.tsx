@@ -50,7 +50,7 @@ export function FinalizeStep({ state, onNext }: { state: AppState, onNext: () =>
               </div>
               <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 flex items-center justify-between">
                 <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">Integrity</span>
-                <span className="text-emerald-400 font-bold">Verified (99.8%)</span>
+                <span className="text-emerald-400 font-bold">Verified ({state.semanticHashScore}%)</span>
               </div>
             </div>
           </motion.div>

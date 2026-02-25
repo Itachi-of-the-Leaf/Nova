@@ -47,7 +47,11 @@ def _convert_headings(text: str) -> str:
             latex_lines.append(f'\n\\subsubsection{{{_latex_escape(m3.group(1))}}}\n')
         else:
             latex_lines.append(_latex_escape(line))
-    return '\n'.join(latex_lines)
+            
+    # Use double-newlines so LaTeX recognizes paragraph breaks instead of 
+    # merging everything into single blocks. This also ensures each reference 
+    # appears on a new line (if they were separate paragraphs in the original doc).
+    return '\n\n'.join(latex_lines)
 
 
 def _apply_metadata_headings(body_text: str, headings_str: str, metadata: dict) -> str:
@@ -87,9 +91,16 @@ def _apply_metadata_headings(body_text: str, headings_str: str, metadata: dict) 
                 continue
             # Only add a marker if the line has no marker yet
             pattern = rf'^(?!@@H)({re.escape(heading)})$'
+            
+            # If the LLM found 'References', keep it as a main section.
+            # Otherwise, assume unstyled LLM headings are subsections (H2).
+            # This fixes the issue where unstyled subsections (e.g. "Autonomy...") 
+            # appear as back-to-back main sections right after the parent H1.
+            repl_marker = r'@@H1@@\1@@END@@' if heading.lower() == 'references' else r'@@H2@@\1@@END@@'
+            
             body_text = re.sub(
                 pattern,
-                r'@@H1@@\1@@END@@',
+                repl_marker,
                 body_text,
                 count=1,
                 flags=re.MULTILINE | re.IGNORECASE

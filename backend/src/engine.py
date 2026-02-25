@@ -94,11 +94,14 @@ def get_document_metadata(text_content):
 
     head_text = text_content[:3000]
     prompt_head = f"""You are a rigid Data Extractor. Extract the Title, Authors, and Abstract.
-CRITICAL: You MUST copy the Abstract EXACTLY character-for-character. Do not fix typos.
-Return ONLY valid JSON.
+CRITICAL INSTRUCTIONS:
+1. For Authors, extract the FULL HUMAN NAMES cleanly. Do NOT include email addresses, university affiliations, or numbers.
+2. You MUST copy the Abstract EXACTLY character-for-character. Do not fix typos.
+
+Return ONLY valid JSON:
 {{
     "title": "exact title string",
-    "authors": "exact authors string",
+    "authors": "Full Name 1, Full Name 2",
     "abstract": "exact abstract string"
 }}
 TEXT:
@@ -126,8 +129,8 @@ TEXT:
     # LLMs truncate long lists. We use regex to find the "References" section 
     # and grab literally everything until the end of the document.
     try:
-        # Looks for the word "References" alone on a line, case-insensitive
-        ref_match = re.search(r'(?i)^\s*references\s*\n(.*)', text_content, re.MULTILINE | re.DOTALL)
+        # Look for "References", optionally followed by a colon or newline
+        ref_match = re.search(r'(?i)^\s*references\b[\s:]*(.*)', text_content, re.MULTILINE | re.DOTALL)
         if ref_match:
             metadata["references"] = ref_match.group(1).strip()
         else:

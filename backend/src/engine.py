@@ -17,8 +17,11 @@ OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'phi3:mini')
 # ==========================================
 def extract_text_from_docx(file_path):
     """
-    Extracts all text from a .docx file as plain text.
-    Heading detection is handled by formatter.py using LLM-extracted metadata.
+    Extracts text from a .docx file, tagging headings by their DOCX style:
+      Heading 1 / Title → @@H1@@text@@END@@
+      Heading 2         → @@H2@@text@@END@@
+      Heading 3         → @@H3@@text@@END@@
+    These markers let formatter.py produce proper \\section / \\subsection hierarchy.
     """
     try:
         doc = docx.Document(file_path)
@@ -26,7 +29,18 @@ def extract_text_from_docx(file_path):
 
         for para in doc.paragraphs:
             clean_text = para.text.strip()
-            if clean_text:
+            if not clean_text:
+                continue
+
+            style = para.style.name if para.style else ""
+
+            if style.startswith("Heading 1") or style == "Title":
+                extracted_paragraphs.append(f"@@H1@@{clean_text}@@END@@")
+            elif style.startswith("Heading 2"):
+                extracted_paragraphs.append(f"@@H2@@{clean_text}@@END@@")
+            elif style.startswith("Heading 3"):
+                extracted_paragraphs.append(f"@@H3@@{clean_text}@@END@@")
+            else:
                 extracted_paragraphs.append(clean_text)
 
         return '\n'.join(extracted_paragraphs)

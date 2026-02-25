@@ -52,44 +52,48 @@ def _convert_headings(text: str) -> str:
 
 def _apply_metadata_headings(body_text: str, headings_str: str, metadata: dict) -> str:
     """
-    Tag lines in body_text that match known section headings.
-    Skips headings that look like the title, authors, or abstract —
-    those are already handled by the LaTeX template header.
-    """
-    if not headings_str:
-        return body_text
+    Filters the @@H*@@ markers already placed by engine.extract_text_from_docx.
+    Removes markers for lines that match the title, authors, or 'abstract' —
+    those are already rendered by the LaTeX template header.
 
+    As a fallback, also tags any LLM-extracted headings that weren't caught
+    by DOCX styles (for documents with poor/missing heading styles).
+    """
     title   = (metadata.get('title',   '') or '').lower().strip()
     authors = (metadata.get('authors', '') or '').lower().strip()
-
-    # Only skip headings that are already rendered by the template header
     SKIP_WORDS = {'abstract'}
 
-    raw_headings = re.split(r'[\n,;]+', headings_str)
-    headings = [h.strip() for h in raw_headings if h.strip()]
+    def _should_skip(text: str) -> bool:
+        t = text.lower().strip()
+        if t in SKIP_WORDS:                      return True
+        if title   and (t in title   or title   in t): return True
+        if authors and (t in authors or authors in t): return True
+        if len(t) > 150:                         return True
+        return False
 
-    for heading in headings:
-        h_lower = heading.lower()
+    # ── Pass 1: strip markers from preamble/title/abstract lines ──────────
+    def _clean_marker(m):
+        inner = m.group(1)          # text inside the marker
+        return inner if _should_skip(inner) else m.group(0)
 
-        # Skip if it matches (or is contained in) the title or authors
-        if h_lower in title or title in h_lower:
-            continue
-        if h_lower in authors or authors in h_lower:
-            continue
-        if h_lower in SKIP_WORDS:
-            continue
-        # Skip very long "headings" — likely a sentence, not a heading
-        if len(heading) > 120:
-            continue
+    body_text = re.sub(r'@@H[123]@@(.+?)@@END@@', _clean_marker, body_text)
 
-        pattern = rf'^({re.escape(heading)})$'
-        body_text = re.sub(
-            pattern,
-            r'@@H1@@\1@@END@@',
-            body_text,
-            count=1,  # only tag the FIRST occurrence — prevents duplicate headings
-            flags=re.MULTILINE | re.IGNORECASE
-        )
+    # ── Pass 2: tag any LLM-extracted headings not already marked ─────────
+    # (fallback for documents that don't use Word heading styles)
+    if headings_str:
+        raw_headings = re.split(r'[\n,;]+', headings_str)
+        for heading in (h.strip() for h in raw_headings if h.strip()):
+            if _should_skip(heading):
+                continue
+            # Only add a marker if the line has no marker yet
+            pattern = rf'^(?!@@H)({re.escape(heading)})$'
+            body_text = re.sub(
+                pattern,
+                r'@@H1@@\1@@END@@',
+                body_text,
+                count=1,
+                flags=re.MULTILINE | re.IGNORECASE
+            )
 
     return body_text
 

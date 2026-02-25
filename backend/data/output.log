@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.2.24)  24 FEB 2026 23:49
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.2.24)  25 FEB 2026 01:08
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -270,67 +270,67 @@ X/fonts/enc/dvips/base/8r.enc}
 
 ]
 [2] [3] [4] [5]
-Underfull \hbox (badness 6032) in paragraph at lines 140--173
+Underfull \hbox (badness 6032) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 (pp. 63-80). Newcastle-upon-Tyne: Cam-bridge Schol-ars
  []
 
 
-Underfull \hbox (badness 2302) in paragraph at lines 140--173
+Underfull \hbox (badness 2302) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 for teach-ers. British Coun-cil, Lon-don. Kukulska-Hulme,
  []
 
 
-Underfull \hbox (badness 3219) in paragraph at lines 140--173
+Underfull \hbox (badness 3219) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 lan-guage learn-ing: From con-tent de-liv-ery to sup-ported
  []
 
 
-Underfull \hbox (badness 2626) in paragraph at lines 140--173
+Underfull \hbox (badness 2626) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 col-lab-o-ra-tion and in-ter-ac-tion. Re-CALL, 20(3), 271-289.
  []
 
 
-Underfull \hbox (badness 2894) in paragraph at lines 140--173
+Underfull \hbox (badness 2894) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 au-ton-omy 1: Def-i-ni-tions, is-sues and prob-lems. Dublin:
  []
 
 
-Underfull \hbox (badness 4792) in paragraph at lines 140--173
+Underfull \hbox (badness 4792) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 of pre-ser-vice En-glish teach-ers' per-cep-tions of mo-bile
  []
 
 
-Underfull \hbox (badness 2884) in paragraph at lines 140--173
+Underfull \hbox (badness 2884) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 as-sisted lan-guage learn-ing. En-glish Lan-guage Teach-ing,
  []
 
 
-Underfull \hbox (badness 1406) in paragraph at lines 140--173
+Underfull \hbox (badness 1406) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 (pp. 37-52). Cam-bridge: Cam-bridge Schol-ars Pub-lish-ing.
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 140--173
+Underfull \hbox (badness 10000) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 from http://llt.msu.edu/issues/june2016/reinderswhite.pdf.
  []
 
 
-Underfull \hbox (badness 1642) in paragraph at lines 140--173
+Underfull \hbox (badness 1642) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 Rein-ders, H. & Cho, M. (2011). En-cour-ag-ing in-for-mal
  []
 
 
-Underfull \hbox (badness 3158) in paragraph at lines 140--173
+Underfull \hbox (badness 3158) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 3-29. Stock-well, G. (2007). Vo-cab-u-lary on the move:
  []
 
 
-Underfull \hbox (badness 1478) in paragraph at lines 140--173
+Underfull \hbox (badness 1478) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 J. (2004). Mo-bile EL-DIT: Chal-lenges in the tran-si-tions
  []
 
 
-Overfull \hbox (6.76741pt too wide) in paragraph at lines 140--173
+Overfull \hbox (6.76741pt too wide) in paragraph at lines 137--170
 \OT1/ptm/m/n/10 http://eprints.biblio.unitn.it/archive/00000532/01/paper4911.pd
 f.
  []
@@ -358,14 +358,14 @@ L3 programming layer <2026-01-19>
 Here is how much of TeX's memory you used:
  3411 strings out of 467867
  52677 string characters out of 5435169
- 480688 words of memory out of 5000000
+ 479025 words of memory out of 5000000
  32304 multiletter control sequences out of 15000+600000
  655952 words of font info for 87 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  57i,8n,65p,2385b,266s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <D:/MikTeX/fonts/type1/urw/times/utmb8a.pfb><D:/MikTeX/fonts/type1/urw/times/
 utmbi8a.pfb><D:/MikTeX/fonts/type1/urw/times/utmr8a.pfb>
-Output written on output.pdf (7 pages, 80714 bytes).
+Output written on output.pdf (7 pages, 80584 bytes).
 PDF statistics:
  42 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)

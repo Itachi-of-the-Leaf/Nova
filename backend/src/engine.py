@@ -5,6 +5,7 @@ import json
 import re
 import hashlib
 from sentence_transformers import SentenceTransformer, util
+from .verifier import verify_references_block
 
 # The model to use for AI extraction.
 # Override by setting OLLAMA_MODEL in your environment, e.g.:
@@ -54,8 +55,8 @@ def extract_text_from_docx(file_path):
 # ==========================================
 def get_document_metadata(text_content):
     """
-    A robust, multi-pass extraction engine designed to prevent SLM hallucinations
-    and handle context window limits on 8GB RAM machines.
+    A robust, multi-pass extraction engine implementing the "Semantic Chunking" strategy 
+    to prevent RAM overload and context window loss on large documents.
     """
     metadata = {
         "title": "", "authors": "", "abstract": "",
@@ -65,38 +66,42 @@ def get_document_metadata(text_content):
     # ==========================================
     # Helper: The "Data Flattener" Shield
     # ==========================================
-    # This prevents the [object Object] frontend crash by forcing everything into a string.
     def flatten_to_string(data):
         if isinstance(data, str):
             return data.strip()
         elif isinstance(data, list):
-            # If the AI returned an array of objects, extract their values
             if len(data) > 0 and isinstance(data[0], dict):
                 return "\n".join([" ".join(str(v) for v in d.values()) for d in data])
-            # If it's a simple array of strings
             return "\n".join(str(i) for i in data)
         elif isinstance(data, dict):
             return "\n".join(str(v) for v in data.values())
         return str(data)
 
-    # ── JSON helper ────────────────────────────────────────────────────────────
-    # phi3:mini sometimes wraps its JSON in markdown code fences even when
-    # format='json' is set. Strip them before parsing so we actually get the data.
     def _safe_json_parse(raw: str) -> dict:
         text = raw.strip()
-        # Remove ```json ... ``` or ``` ... ``` wrapping
         if text.startswith('```'):
             lines = text.splitlines()
-            # Drop the first line (```json or ```) and the last (```)
             inner = [l for l in lines[1:] if l.strip() != '```']
             text = '\n'.join(inner).strip()
         return json.loads(text)
 
-    head_text = text_content[:3000]
-    prompt_head = f"""You are a rigid Data Extractor. Extract the Title, Authors, and Abstract.
+    # ==========================================
+    # PASS 1: Map-Reduce Semantic Chunking
+    # ==========================================
+    # Break the document into strictly sized chunks to protect the KV cache (8GB RAM limit)
+    chunks = get_semantic_chunks(text_content, chunk_size=2000)
+    
+    # Iterate through the first few chunks to handle massive title pages or cover letters
+    for i, chunk in enumerate(chunks[:3]):
+        # Skip inference if we already successfully extracted the core header data
+        if metadata["title"] and metadata["abstract"] and len(metadata["abstract"]) > 50:
+            break
+
+        prompt_head = f"""You are a rigid Data Extractor. Extract the Title, Authors, and Abstract from the text below.
 CRITICAL INSTRUCTIONS:
-1. For Authors, extract the FULL HUMAN NAMES cleanly. Do NOT include email addresses, university affiliations, or numbers.
-2. You MUST copy the Abstract EXACTLY character-for-character. Do not fix typos.
+1. For Authors, extract FULL HUMAN NAMES cleanly (no emails, numbers, or affiliations).
+2. If a field is not found in this specific text chunk, return an empty string "".
+3. Copy the Abstract EXACTLY character-for-character.
 
 Return ONLY valid JSON:
 {{
@@ -105,60 +110,61 @@ Return ONLY valid JSON:
     "abstract": "exact abstract string"
 }}
 TEXT:
-{head_text}
+{chunk}
 """
+        try:
+            res_head = ollama.chat(
+                model=OLLAMA_MODEL,
+                messages=[{'role': 'user', 'content': prompt_head}],
+                format='json',
+                options={'temperature': 0.0},
+            )
+            data = _safe_json_parse(res_head['message']['content'])
+
+            # Only overwrite if the new chunk found something and we didn't already have it
+            new_title = flatten_to_string(data.get("title", ""))
+            new_authors = flatten_to_string(data.get("authors", ""))
+            new_abstract = flatten_to_string(data.get("abstract", ""))
+
+            if new_title and len(new_title) > 5 and not metadata["title"]: 
+                metadata["title"] = new_title
+            if new_authors and not metadata["authors"]: 
+                metadata["authors"] = new_authors
+            if new_abstract and len(new_abstract) > 20 and not metadata["abstract"]: 
+                metadata["abstract"] = new_abstract
+
+        except Exception as e:
+            print(f"Chunk {i} Extraction Failed: {e}")
+
+    # ==========================================
+    # PASS 2: RegEx References (Unbreakable)
+    # ==========================================
     try:
-        res_head = ollama.chat(
-            model=OLLAMA_MODEL,
-            messages=[{'role': 'user', 'content': prompt_head}],
-            format='json',
-            options={'temperature': 0.0},
-        )
-        raw_content = res_head['message']['content']
-        head_data = _safe_json_parse(raw_content)
-
-        metadata["title"]    = flatten_to_string(head_data.get("title", ""))
-        metadata["authors"]  = flatten_to_string(head_data.get("authors", ""))
-        metadata["abstract"] = flatten_to_string(head_data.get("abstract", ""))
-    except Exception as e:
-        print(f"Header Extraction Failed: {e}")
-        print(f"  Raw LLM output: {res_head['message']['content'][:300] if 'res_head' in dir() else 'N/A'}")
-
-
-    # --- PASS 2: RegEx References (Unbreakable) ---
-    # LLMs truncate long lists. We use regex to find the "References" section 
-    # and grab literally everything until the end of the document.
-    try:
-        # Look for "References", optionally followed by a colon or newline
         ref_match = re.search(r'(?i)^\s*references\b[\s:]*(.*)', text_content, re.MULTILINE | re.DOTALL)
         if ref_match:
-            metadata["references"] = ref_match.group(1).strip()
+            raw_refs = ref_match.group(1).strip()
+            # RUN THE TRUTH ENGINE
+            metadata["references"] = verify_references_block(raw_refs)
         else:
             metadata["references"] = "No references section found."
     except Exception as e:
         print(f"Reference Extraction Failed: {e}")
 
-
-    # --- PASS 3: Context-Aware Heading Detection & Content Parsing ---
+    # ==========================================
+    # PASS 3: Context-Aware Heading Detection
+    # ==========================================
     try:
-        # 1. Find the "Safe Zone" (Everything after the abstract)
-        # This prevents author names and affiliations from being tagged as headings
         abstract_match = re.search(r'(?i)abstract', text_content)
         safe_start_idx = abstract_match.end() if abstract_match else 1000
         safe_text = text_content[safe_start_idx:]
         
         found_headings = []
-        
-        # 2. Look for explicit Roman Numerals (IEEE standard) if they survived extraction
         explicit_pattern = re.compile(r'^(?:[IVXLCDM]+|[A-Z]|\d+)\.\s+[A-Z].+', re.MULTILINE)
         found_headings = explicit_pattern.findall(safe_text)
         
-        # 3. If numbers were stripped, use Spatial Heuristics
         if not found_headings:
             for line in safe_text.split('\n'):
                 line = line.strip()
-                # A heading is usually short, capitalized, and doesn't end in punctuation.
-                # We strictly filter out emails (@) and common affiliation words.
                 if 2 < len(line) < 60 and line[0].isupper() and not line.endswith(('.', '?', '!', ':')):
                     lower_line = line.lower()
                     if '@' not in line and not any(bad in lower_line for bad in ['university', 'college', 'school', 'department', 'institute']):
@@ -174,8 +180,9 @@ TEXT:
     except Exception as e:
         print(f"Heading Detection Failed: {e}")
 
-    # --- PASS 4: Dynamic Confidence Score ---
-    # We now check the actual *length* of the strings, ensuring the AI didn't just return a 1-letter mistake
+    # ==========================================
+    # PASS 4: Dynamic Confidence Score
+    # ==========================================
     confidence = 100
     
     if len(metadata["title"]) < 5 or "Error" in metadata["title"]: confidence -= 25
@@ -184,7 +191,6 @@ TEXT:
     if len(metadata["references"]) < 15: confidence -= 15
     if "No standard headings detected" in metadata["headings"]: confidence -= 10
     
-    # Cap between 10% and 100% to keep the UI looking normal
     metadata["confidence"] = max(10, min(100, confidence))
     
     return metadata

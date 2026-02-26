@@ -105,6 +105,7 @@ else:
         st.subheader("Glass Box Verification")
         
         # --- A. Tag Review (Show exactly what was detected) ---
+        # --- A. Tag Review (Show exactly what was detected) ---
         st.markdown('<div class="box-container">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">🔍 Extracted Metadata (Edit to correct)</div>', unsafe_allow_html=True)
         st.caption("The AI extracted the following blocks. Please verify their accuracy.")
@@ -112,12 +113,17 @@ else:
         new_title = st.text_area("Title", value=st.session_state.metadata.get('title', ''), height=68)
         new_authors = st.text_area("Authors", value=st.session_state.metadata.get('authors', ''), height=68)
         new_abstract = st.text_area("Abstract", value=st.session_state.metadata.get('abstract', ''), height=180)
+        
+        st.markdown('<div class="section-title" style="margin-top: 15px;">🛡️ Truth Engine: Citation Verification</div>', unsafe_allow_html=True)
+        new_refs = st.text_area("Bibliography", value=st.session_state.metadata.get('references', ''), height=250)
+
         st.markdown('</div>', unsafe_allow_html=True)
 
         # Update Session State with any user edits
         st.session_state.metadata['title'] = new_title
         st.session_state.metadata['authors'] = new_authors
         st.session_state.metadata['abstract'] = new_abstract
+        st.session_state.metadata['references'] = new_refs # <-- ADD THIS TOO
 
         # --- B. Compliance Checklist ---
         st.markdown('<div class="box-container">', unsafe_allow_html=True)

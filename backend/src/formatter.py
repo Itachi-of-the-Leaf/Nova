@@ -77,11 +77,25 @@ def _convert_headings(text: str) -> str:
             
         # Standard line-by-line processing for headings and text
         lines = block.split('\n')
+        in_list = False
+        
         for line in lines:
             m1 = re.match(r'@@H1@@(.*?)@@END@@', line)
             m2 = re.match(r'@@H2@@(.*?)@@END@@', line)
             m3 = re.match(r'@@H3@@(.*?)@@END@@', line)
-            if m1:
+            m_list = re.match(r'@@LIST_ITEM@@(.*?)@@END@@', line)
+            
+            # Context-switching for LaTeX Itemize block
+            if m_list and not in_list:
+                final_latex_parts.append('\\begin{itemize}')
+                in_list = True
+            elif not m_list and in_list:
+                final_latex_parts.append('\\end{itemize}')
+                in_list = False
+                
+            if m_list:
+                final_latex_parts.append(f'\\item {_latex_escape(m_list.group(1).strip())}')
+            elif m1:
                 heading_text = m1.group(1)
                 if heading_text.lower().strip() == 'references':
                     final_latex_parts.append(f'\n\\section*{{{_latex_escape(heading_text)}}}\n')
@@ -93,9 +107,15 @@ def _convert_headings(text: str) -> str:
                 final_latex_parts.append(f'\n\\subsubsection{{{_latex_escape(m3.group(1))}}}\n')
             else:
                 if line.strip():
-                    final_latex_parts.append(_latex_escape(line))
+                    escaped_line = _latex_escape(line)
+                    escaped_line = re.sub(r'@@FOOTNOTE@@(.*?)@@END@@', r'\\footnote{\1}', escaped_line)
+                    final_latex_parts.append(escaped_line)
                 else:
                     final_latex_parts.append("") # preserve double newline logic
+                    
+        # Conclude itemize context if block ended on list
+        if in_list:
+            final_latex_parts.append('\\end{itemize}')
 
     return '\n\n'.join(final_latex_parts)
 

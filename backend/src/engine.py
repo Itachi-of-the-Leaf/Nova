@@ -38,13 +38,46 @@ def extract_text_from_docx(file_path):
         
         extracted_blocks = []
         import re
+        
+        # PASS 1: Extract Footnotes to a dictionary to restore their spatial layout inline
+        footnotes = {}
+        normal_elements = []
         for element in elements:
             clean_text = str(element).strip()
             if not clean_text:
                 continue
+            
+            # unstructured natively tags footnotes as 'Footnote' if metadata is rich
+            if type(element).__name__ == "Footnote":
+                # Usually looks like "1 This is a footnote" or "[1] This is a footnote"
+                m = re.match(r'^\[?(\d+)\]?[\s\.\:]+(.*)', clean_text)
+                if m:
+                    footnotes[m.group(1)] = m.group(2)
+                else:
+                    # Fallback string
+                    footnotes["unknown"] = clean_text
+            else:
+                normal_elements.append(element)
+
+        # PASS 2: Process text and inject \footnote inline
+        for element in normal_elements:
+            clean_text = str(element).strip()
 
             # targeted regex to fix OCR artifacts where S<number> is read as $<number>
             clean_text = re.sub(r'\$(\d+)', r'S\1', clean_text)
+
+            # Inject footnotes inline so LaTeX renders them at the bottom of the spatial page
+            if footnotes:
+                def repl_footnote(m):
+                    fn_num = m.group(1)
+                    if fn_num in footnotes:
+                        fn_text = footnotes.pop(fn_num) # only inject once
+                        # We use @@FOOTNOTE@@ instead of direct LaTeX here so formatter.py can escape it later
+                        return f"@@FOOTNOTE@@{fn_text}@@END@@"
+                    return m.group(0)
+                
+                # Match [1] or ^1 in the text
+                clean_text = re.sub(r'\[?(\d+)\]?', repl_footnote, clean_text)
 
             el_type = type(element).__name__
             
@@ -67,9 +100,15 @@ def extract_text_from_docx(file_path):
             elif el_type in ["Header", "Footer"]:
                 # Ignore running headers/footers to avoid polluting core text semantic flow
                 continue
+            elif el_type == "ListItem":
+                extracted_blocks.append(f"@@LIST_ITEM@@{clean_text}@@END@@")
             else:
                 extracted_blocks.append(clean_text)
                 
+        # Append any un-injected footnotes to the body so they aren't completely lost
+        for fn_num, fn_text in footnotes.items():
+            extracted_blocks.append(f"@@FOOTNOTE@@{fn_text}@@END@@")
+            
         return '\n'.join(extracted_blocks)
     except Exception as e:
         import traceback

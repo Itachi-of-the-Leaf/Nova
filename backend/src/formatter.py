@@ -234,6 +234,8 @@ def generate_pdf(metadata, body_text):
         # Instead, we look for 'Introduction' or the first LLM-extracted heading.
         cut_index = -1
         intro_match = re.search(r'@@H[123]@@(I\.?\s*)?Introduction@@END@@', tagged_body, re.IGNORECASE)
+        table_match = tagged_body.find('[TABLE_START]')
+        
         if intro_match:
             cut_index = intro_match.start()
         else:
@@ -248,6 +250,15 @@ def generate_pdf(metadata, body_text):
             else:
                 # Last resort: just cut at the first marker
                 cut_index = tagged_body.find('@@H')
+                
+        # CRITICAL FIX: Ensure we never drop a Table that occurs before the first heading
+        if table_match != -1 and (cut_index == -1 or table_match < cut_index):
+            # However, ONLY prioritize the table if it's AFTER the abstract to prevent grabbing metadata tables
+            if abstract_text and abstract_text in tagged_body:
+                if table_match > tagged_body.find(abstract_text):
+                    cut_index = table_match
+            else:
+                cut_index = table_match
 
         if cut_index > 0:
             tagged_body = tagged_body[cut_index:]

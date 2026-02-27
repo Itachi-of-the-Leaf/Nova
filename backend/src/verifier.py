@@ -5,14 +5,14 @@ import re
 import concurrent.futures
 
 def verify_single_citation(citation):
-    """Hits the Crossref API to verify if a citation actually exists."""
+    """Hits the Crossref API to verify and deterministically reconstruct the citation."""
     clean_citation = citation.strip()
     if len(clean_citation) < 15:
         return citation  # Too short to be a real citation, return as-is
     
     # URL encode the citation string for the query
     encoded_query = urllib.parse.quote(clean_citation)
-    url = f"https://api.crossref.org/works?query.bibliographic={encoded_query}&rows=1&select=title,DOI,score"
+    url = f"https://api.crossref.org/works?query.bibliographic={encoded_query}&rows=1&select=title,DOI,score,author,published-print,published-online,container-title"
     
     # Crossref asks for a polite User-Agent
     req = urllib.request.Request(url, headers={'User-Agent': 'NOVA_Prototype/1.0 (mailto:prototype@nova.local)'})
@@ -29,7 +29,23 @@ def verify_single_citation(citation):
                 # A score > 35 generally means Crossref found a highly accurate match
                 if score > 35:
                     doi = top_hit.get("DOI", "No DOI")
-                    return f"✅ [VERIFIED | DOI: {doi}]\n{clean_citation}"
+                    title = top_hit.get("title", [""])[0]
+                    author_list = top_hit.get("author", [])
+                    authors = ", ".join([f"{a.get('given', '')} {a.get('family', '')}".strip() for a in author_list])
+                    
+                    year = ""
+                    pub = top_hit.get("published-print") or top_hit.get("published-online")
+                    if pub and "date-parts" in pub and pub["date-parts"]:
+                        year = pub["date-parts"][0][0]
+                        
+                    venue = top_hit.get("container-title", [""])[0]
+                    
+                    # Deterministically construct the confirmed reference, destroying original messy/hallucinated data
+                    constructed = f"{authors}. \"{title}.\" {venue} ({year})."
+                    if doi and doi != "No DOI":
+                        constructed += f" https://doi.org/{doi}"
+                    
+                    return f"✅ [VERIFIED | DOI: {doi}]\n{constructed}"
                 else:
                     return f"⚠️ [LOW CONFIDENCE | Possible Hallucination]\n{clean_citation}"
             else:

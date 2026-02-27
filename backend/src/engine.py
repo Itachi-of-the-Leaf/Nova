@@ -27,13 +27,16 @@ def extract_text_from_docx(file_path):
         
         # Partition docx/pdf extracts layout-aware semantic blocks to prevent
         # multi-column reading order corruption. Use hi_res and yolo to avoid OCR artifacts on tables.
-        # Disabled chunking to prevent Tables from being flattened into CompositeElements.
+        # Adjusted chunking to preserve paragraphs/sentences.
         elements = partition(
             filename=file_path,
             strategy="hi_res",
             hi_res_model_name="yolox",
             infer_table_structure=True,
             skip_infer_table_types=["pdf"],
+            chunking_strategy="by_title",
+            combine_text_under_n_chars=500,
+            max_characters=2000,
             languages=["eng"]
         )
         
@@ -44,18 +47,11 @@ def extract_text_from_docx(file_path):
         # and capture the top-most prominent text for the Title
         footnotes = {}
         normal_elements = []
-        potential_title = ""
 
         # Find the very first meaningful element for spatial layout reliability
         for element in elements:
             clean_text = str(element).strip()
             if not clean_text: continue
-            
-            # Unstructured doesn't always flag the top as "Title". Just take the first valid line.
-            if not potential_title and len(clean_text) > 10 and "http" not in clean_text.lower():
-                # Discard generic headers
-                if not re.match(r'^(I\.|II\.|III\.)\s+RESEARCH', clean_text, re.IGNORECASE):
-                    potential_title = clean_text
 
             el_type = type(element).__name__
             if el_type == "Footnote":
@@ -118,50 +114,7 @@ def extract_text_from_docx(file_path):
         for fn_num, fn_text in footnotes.items():
             extracted_blocks.append(f"@@FOOTNOTE@@{fn_text}@@END@@")
             
-        # Post-Process: Fix abrupt paragraph breaks
-        import logging
-        processed_blocks = []
-        for block in extracted_blocks:
-            if not processed_blocks:
-                processed_blocks.append(block)
-                continue
-                
-            prev = processed_blocks[-1]
-            
-            # Do not merge structural or metadata tags
-            if prev.startswith("@@") or prev.startswith("[TABLE") or block.startswith("@@") or block.startswith("[TABLE"):
-                processed_blocks.append(block)
-                continue
-                
-            # Merge if the previous string doesn't end with punctuation
-            # Check the last meaningful character (ignore trailing spaces/quotes/brackets)
-            clean_prev = prev.rstrip(r' \'"”’)]\}' + '\n')
-            
-            # Avoid merging if the NEXT block looks like a structural Header
-            clean_block = block.strip()
-            next_is_header = len(clean_block) > 0 and len(clean_block) < 60 and clean_block[0].isupper() and not clean_block.endswith(('.', '?', '!', ':', ',')) and '\n' not in clean_block
-            
-            # Avoid merging if the PREVIOUS block is a short header itself
-            prev_is_header = len(clean_prev) > 0 and len(clean_prev) < 100 and clean_prev[0].isupper() and not clean_prev.endswith(('.', '?', '!', ':', ','))
-
-            if clean_prev and not clean_prev.endswith(('.', '?', '!', ':')) and not next_is_header and not prev_is_header:
-                if prev.endswith('-'):
-                    merged = prev[:-1] + block  # hyphen continuation
-                    logging.debug(f"MERGED HYPHEN PARAGRAPH:\n[PREV]: {prev}\n[NEXT]: {block}\n[RSLT]: {merged}\n")
-                    processed_blocks[-1] = merged
-                else:
-                    merged = prev + " " + block # space continuation
-                    logging.debug(f"MERGED ABRUPT PARAGRAPH:\n[PREV]: {prev}\n[NEXT]: {block}\n[RSLT]: {merged}\n")
-                    processed_blocks[-1] = merged
-            else:
-                processed_blocks.append(block)
-                
-        full_text = '\n\n'.join(processed_blocks)
-        
-        # Prepend the spatial title magically so the LLM doesn't have to guess it
-        if potential_title:
-            full_text = f"SPATIAL_DETECTED_TITLE: {potential_title}\n\n" + full_text
-            
+        full_text = '\n'.join(extracted_blocks)
         return full_text
     except Exception as e:
         import traceback
@@ -206,23 +159,8 @@ def get_document_metadata(text_content):
         return json.loads(text)
 
     # ==========================================
-    # PASS 1: Map-Reduce Semantic Chunking & Spatial Title Guarantee
+    # PASS 1: Map-Reduce Semantic Chunking
     # ==========================================
-    
-    # GUARANTEED TITLE EXTRACTION: Bypass LLM for Title
-    spatial_title_match = re.search(r'SPATIAL_DETECTED_TITLE:\s*(.+)', text_content)
-    if spatial_title_match:
-        # Hardcode it so the LLM doesn't even get a chance to erase it
-        title_candidate = spatial_title_match.group(1).strip()
-        # Drop generic submission headers
-        if title_candidate.lower() not in ["research paper", "article", "review paper", "original article"]:
-            metadata["title"] = title_candidate
-            
-    # Fallback to the absolute first sentence if the spatial tag failed or was dropped
-    if not metadata["title"]:
-        first_line = text_content.strip().split('\n')[0].strip()
-        if len(first_line) > 10 and first_line.lower() not in ["research paper", "article", "review paper"]:
-            metadata["title"] = first_line
     
     # Break the document into strictly sized chunks to protect the KV cache (8GB RAM limit)
     chunks = get_semantic_chunks(text_content, chunk_size=3000)
@@ -230,19 +168,20 @@ def get_document_metadata(text_content):
     # Iterate through the first few chunks to handle massive title pages or cover letters
     for i, chunk in enumerate(chunks[:3]):
         # Skip inference if we already successfully extracted the core header data
-        if metadata["authors"] and metadata["abstract"] and len(metadata["abstract"]) > 50:
+        if metadata["title"] and metadata["authors"] and metadata["abstract"] and len(metadata["abstract"]) > 50:
             break
 
-        prompt_head = f"""You are a strict, literal Data Extractor. Extract the exact Authors and Abstract from the text below.
+        prompt_head = f"""You are a strict, literal Data Extractor. Extract the exact Title, Authors and Abstract from the text below.
 CRITICAL INSTRUCTIONS:
-1. ONLY extract information that is explicitly and visibly present in the text chunk. DO NOT hallucinate, guess, or infer missing information.
-2. For Authors, extract ONLY the literal Full Human Names strictly from the text provided. Do not guess non-existent authors or include email addresses. Return an empty string if no authors are explicitly listed.
-3. If a field is not found in the text chunk, return an empty string "".
-4. Copy the Abstract EXACTLY character-for-character as they appear in the text.
+1. ONLY extract information that is explicitly and visibly present in the text chunk. DO NOT hallucinate.
+2. For Title, extract the literal document title. Do not extract generic headers like "Research paper".
+3. For Authors, extract ONLY the literal Full Human Names. If you see "Mariusz Kruk University of Zielona Gora, Poland", you MUST extract "Mariusz Kruk". Strip away any affiliations or emails on the same line. Return ONLY the names, separated by commas. Return an empty string if no authors are explicitly listed.
+4. Copy the Abstract EXACTLY.
 
 Return ONLY valid JSON:
 {{
-    "authors": "Full Name 1, Full Name 2",
+    "title": "exact title string",
+    "authors": "author names",
     "abstract": "exact abstract string"
 }}
 TEXT:
@@ -257,9 +196,12 @@ TEXT:
             )
             data = _safe_json_parse(res_head['message']['content'])
 
+            new_title = flatten_to_string(data.get("title", ""))
             new_authors = flatten_to_string(data.get("authors", ""))
             new_abstract = flatten_to_string(data.get("abstract", ""))
 
+            if new_title and not metadata["title"]:
+                metadata["title"] = new_title
             if new_authors and not metadata["authors"]: 
                 metadata["authors"] = new_authors
             if new_abstract and len(new_abstract) > 20 and not metadata["abstract"]: 
@@ -279,25 +221,12 @@ TEXT:
             # Use strict layout tagging @@LIST_ITEM@@ if it exists
             if "@@LIST_ITEM@@" in raw_refs:
                 items = re.findall(r'@@LIST_ITEM@@(.*?)@@END@@', raw_refs, re.DOTALL)
-                citations = [item.replace('\n', ' ').strip() for item in items if len(item) > 10]
-                metadata["references"] = citations
+                metadata["references"] = [item.replace('\n', ' ').strip() for item in items if len(item) > 10]
             else:
-                raw_refs_flat = raw_refs.replace('\n', ' ')
-                # Split by: 
-                # 1. Numbered items: [1], [2], etc.
-                # 2. Year ending statements: " ... 2012.  NextAuthor"
-                # 3. Two or more spaces "  "
-                split_patterns = r'(?:\s*\[\d+\]\s*)|(?<=\d{4}\.)\s+(?=[A-Z])|(?:\s{2,})'
-                split_refs = re.split(split_patterns, raw_refs_flat)
-                
-                citations = []
-                for c in split_refs:
-                    if not c: continue
-                    cl = c.strip()
-                    if len(cl) > 15 and not cl.lower().startswith('references'):
-                        citations.append(cl)
-                        
-                metadata["references"] = citations
+                raw_citations = re.split(r'\n(?=\[\d+\]|\d+\.|[A-Z][a-z]+,?\s+[A-Z]\.?\s*\(?\d{4}\)?)| \n\n+', raw_refs)
+                metadata["references"] = [c.strip() for c in raw_citations if len(c.strip()) > 10]
+        else:
+            metadata["references"] = []
     except Exception as e:
         print(f"Reference Extraction Failed: {e}")
 
@@ -350,7 +279,7 @@ TEXT:
     if len(metadata["title"]) < 5 or "Error" in metadata["title"]: confidence -= 25
     if len(metadata["authors"]) < 3: confidence -= 15
     if len(metadata["abstract"]) < 40: confidence -= 30
-    if len(metadata["references"]) < 15: confidence -= 15
+    if not metadata["references"]: confidence -= 15
     if "No standard headings detected" in metadata["headings"]: confidence -= 10
     
     metadata["confidence"] = max(10, min(100, confidence))

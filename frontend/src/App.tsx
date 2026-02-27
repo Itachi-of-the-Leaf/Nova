@@ -26,7 +26,7 @@ const INITIAL_STATE: AppState = {
     authors: '',
     abstract: '',
     headings: '',
-    references: '',
+    references: [],
   },
   lexicalHashOriginal: '',
   lexicalHashFinal: '',

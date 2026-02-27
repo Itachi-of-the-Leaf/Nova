@@ -58,6 +58,9 @@ async def upload_file(file: UploadFile = File(...)):
         semantic_hash = await asyncio.to_thread(engine.get_semantic_hash, raw_text)
         metadata     = await asyncio.to_thread(engine.get_document_metadata, raw_text)
 
+        import json
+        print(f"[N.O.V.A.] /upload -> Passing explicit Metadata Payload: {json.dumps(metadata, indent=2)}")
+        
         return {
             "raw_text":      raw_text,
             "lexical_hash":  lexical_hash,
@@ -136,16 +139,19 @@ async def fix_abstract(request: AbstractRequest):
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 
-from typing import List
-
+from typing import Union, List
 class CrossrefRequest(BaseModel):
-    references: List[str]
+    references: Union[List[str], str]
 
 @app.post("/verify-crossref")
 async def verify_crossref(request: CrossrefRequest):
     """Hits the Crossref API to verify the list of citations during the Compliance Check step, returning suggestions."""
     try:
         from src.verifier import verify_references_block
+        import json
+        
+        print(f"[N.O.V.A.] /verify-crossref -> Received Payload:\n{json.dumps(request.dict(), indent=2)}")
+        
         # Run blocking network call in a thread
         results = await asyncio.to_thread(verify_references_block, request.references)
         
@@ -162,6 +168,10 @@ async def verify_crossref(request: CrossrefRequest):
 @app.post("/download/pdf")
 async def download_pdf(req: GenerateRequest):
     try:
+        import json
+        print(f"[N.O.V.A.] /download/pdf -> Received Generate Payload References as Type {type(req.metadata.get('references'))}")
+        print(f"[N.O.V.A.] /download/pdf -> References array length: {len(req.metadata.get('references', []))}")
+        
         pdf_bytes = await asyncio.to_thread(formatter.generate_pdf, req.metadata, req.raw_text)
         # Real PDFs always start with the %PDF magic bytes
         if not pdf_bytes or not pdf_bytes[:4] == b'%PDF':
@@ -232,10 +242,14 @@ async def download_docx(req: GenerateRequest):
             doc.add_paragraph(req.raw_text)
 
             # References
-            refs = req.metadata.get('references', '')
+            refs = req.metadata.get('references', [])
             if refs:
                 doc.add_heading('References', level=1)
-                doc.add_paragraph(refs)
+                if isinstance(refs, list):
+                    for r in refs:
+                        doc.add_paragraph(r, style='List Bullet')
+                else:
+                    doc.add_paragraph(refs)
 
             buf = io.BytesIO()
             doc.save(buf)

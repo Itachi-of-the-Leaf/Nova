@@ -5,263 +5,2015 @@
 
 \begin{document}
 
-\title{SPATIAL\_DETECTED\_TITLE: Research paper}
-\author{\IEEEauthorblockN{Mariusz Kruk}}
+\title{Perfect Zero Knowledge: New Upperbounds and Relativized Separations}
+\author{\IEEEauthorblockN{Peter Dixon, Sutanu Gayen, A. Pavan, N. V. Vinodchandran}}
 \maketitle
 
 \begin{abstract}
-The paper discusses the results of a study which explored advanced learners of English engagement with their mobile devices to develop learning experiences that meet their needs and goals as foreign language learners. The data were collected from 20 students by means of a semi-structured interview. The gathered data were subjected to qualitative and quantitative analysis. The results of the study demonstrated that, on the one hand, some subjects manifested heightened awareness relating to the advantageous role of mobile devices in their learning endeavors, their ability to reach for suitable tools and retrieve necessary information so as to achieve their goals, meet their needs and adjust their learning of English to their personal learning styles, and on the other, a rather intuitive and/or ad hoc use of their mobile devices in the classroom.
+We investigate the complexity of problems that admit perfect zero-knowledge interactive protocols and establish new unconditional upper bounds and oracle separation results. We establish our results by investigating certain distribution testing problems: computational problems over high-dimensional distributions represented by succinct Boolean circuits. A relatively less-investigated com- plexity class SBP emerged as significant in this study. The main results we establish are:
+
+A unconditional inclusion that NIPZK $\subseteq$ CoSBP.
+
+Construction of a relativized world in which there is a distribution testing problem that lies in NIPZK but not in SBP, thus giving a relativized separation of NIPZK (and hence PZK) from SBP. 
+
+Construction of a relativized world in which there is a distribution testing problem that lies in PZK but not in CoSBP, thus giving a relativized separation of PZK from CoSBP.
+
+Results (1) and (3) imply an oracle separating PZK from NIPZK. Our results refine the landscape of perfect zero-knowledge classes in relation to traditional complexity classes.
 \end{abstract}
 
 
+\subsection{Introduction}
 
-\begin{table}[h!]
-\centering
-\begin{tabular}{|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|}
-\hline
-Year/ Level of study & Student & Sex & Device used &  & Use of MobDs for language study (approx.) &  & Self-assessed experience \\
-\hline
-2nd year B.A. & S1 & female & smartphone and tablet &  & 2 years &  & not very experienced \\
-\hline
-2nd year B.A. & S2 & female & smartphone &  & 5 years &  & experienced \\
-\hline
-2nd year B.A. & S3 & female & smartphone &  & 5 years &  & fairly experienced \\
-\hline
-2nd year B.A. & S4 & female & smartphone, rarely tablet &  & 4 years &  & fairly experienced \\
-\hline
-2nd year B.A. & S5 & female & smartphone &  & 3 years &  & not very experienced \\
-\hline
-2nd year B.A. & S6 & male & smartphone &  & 2 years &  & experienced \\
-\hline
-2nd year B.A. & S7 & female & smartphone and tablet &  & 5 years &  & fairly experienced \\
-\hline
-\end{tabular}
-\end{table}
 
+The notion of zero-knowledge interactive proof was introduced in the seminal work of Goldwasser, Micali, and Rackoff. Since their introduction, zero-knowledge proofs have played a central role in the development of the foundations of cryptography [18]. Informally, it is a protocol between two parties, a prover and a verifier, where the prover wants to establish possession of certain knowledge without revealing the knowledge itself. Goldwasser, Micali, and Rackoff formalized this intuitive notion using the language of computational complexity theory. It is formalized as follows. A language or a promise problem L admits an interactive proof if there is a computationally unbounded prover P and a randomized polynomial-time verifier V such that for a positive instance x, V after interacting with P accepts x with high probability. On the other hand, for a negative instance x for any prover P $*$, the verifier V after interacting with P $*$ accepts x with low probability. The protocol is a statistical zero-knowledge protocol if for positive instances, the interaction between P and
 
+V can be simulated by a randomized polynomial time simulator S so that the output distribution of the simulator is statistically close to the distribution of the interaction. The intuition is that the interaction itself can be simulated efficiently (in randomized polynomial-time) and hence the verifier is not gaining any additional knowledge other than what she can simulate by herself. The class of problems that admit statistical zero-knowledge interactive proofs is denoted by SZK. An important restriction is when the output distribution of the simulator is identical to the distribution of the interaction. Such a protocol is called a perfect zero-knowledge protocol, and the corresponding class of languages is denoted by PZK [17]. It is also possible to envision a non-interactive situation where the only communication in the protocol is from the prover to the verifier. Indeed, Blum, Feldman and Micali [6] and De Santis et al [7] investigated such non- interactive zero-knowledge proofs and introduced the class NISZK. The corresponding perfect zero-knowledge class NIPZK was first investigated by Malka [21].
 
 
 
+s Research supported in part by NSF grants 1849053, 1849048, 1934884
 
+Zero-knowledge proofs and corresponding classes have played a key role in bridging computational com- plexity theory and cryptography. Several computationally hard problems that are not known to be NP- complete, including Graph Isomorphism, Quadratic Residuosity, and certain lattice problems, admit zero- knowledge proofs (some non-interactive and some perfect zero-knowledge) [12, 23, 14, 13]. Also, several cryp- tosystems are based on the computational hardness of some of these problems. While these problems are computationally hard in the sense that they lack efficient algorithms, it is interesting that they are unlikely to be NP-complete. Establishing the relationships among zero-knowledge classes and proving traditional com- plexity class (such as PP and sub-classes of the Polynomial Hierarchy) upper bounds for them continues to be a research focus in complexity theory and cryptography [11, 3, 22, 24]. While there are a few unconditional upper bound results, most of the results establish the hardness of proving upper bounds in the form of oracle results. We briefly discuss them below.
 
 
-\begin{table}[h!]
-\centering
-\begin{tabular}{|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|p{0.119\textwidth}|}
-\hline
- & S8 & female & smartphone &  & 2 years &  & fairly experienced \\
-\hline
- & S9 & male & smartphone &  & 4 years &  & not very experienced \\
-\hline
-3rd year B.A. & S10 & female & smartphone &  & 5 years &  & fairly experienced \\
-\hline
-3rd year B.A. & S11 & female & tablet and cell phone &  & 2 years &  & fairly experienced \\
-\hline
-3rd year B.A. & S12 & female & smartphone &  & 2 years &  & not very experienced \\
-\hline
-3rd year B.A. & S13 & female & smartphone &  & 3 years &  & not very experienced \\
-\hline
-3rd year B.A. & S14 & male & smartphone and tablet &  & 3 years &  & experienced \\
-\hline
-3rd year B.A. & S15 & female & smartphone and tablet &  & 5 years &  & fairly experienced \\
-\hline
-2nd year M.A. & S16 & female & smartphone &  & 3 years &  & not very experienced \\
-\hline
-2nd year M.A. & S17 & female & smartphone and tablet &  & 6 years &  & fairly experienced \\
-\hline
-2nd year M.A. & S18 & female & smartphone &  & 5 years &  & not very experienced \\
-\hline
-2nd year M.A. & S19 & female & smartphone and tablet &  & 5 years &  & not very experienced \\
-\hline
-2nd year M.A. & S20 & female & smartphone and tablet &  & 5 years &  & fairly experienced \\
-\hline
- &  &  &  &  &  &  & fairly experienced \\
-\hline
-\end{tabular}
-\end{table}
 
+Unconditional Upper Bounds: Two main early upper bound results are that SZK is closed under com- plement [22, 24] and SZK is upper bounded by AM $\cap$ coAM [11, 3, 22, 24]. The latter result implies that NP-complete problems cannot have statistical zero-knowledge proofs unless it contradicts the widely held belief that the Polynomial Hierarchy is infinite [9]. The relationship between zero-knowledge classes and traditional probabilistic complexity classes has also been explored recently. In particular, Bouland et al. show that all problems with perfect zero-knowledge proofs admit unbounded probabilistic polynomial-time algorithms (that is, PZK $\subseteq$ PP) [10].
 
+Relativized Separations: Several significant upper bound questions, including whether various zero-knowledge classes are closed under complement and whether statistical zero-knowledge classes equal the corresponding perfect zero knowledge classes, turned out to be difficult to resolve and led to oracle separation results. Lovett and Zhang showed that the class NISZK is not closed under complement in a relativized world [20]. Bouland et al., in the same paper where they show PZK $\subseteq$ PP, established a comprehensive set of oracle separation results. In particular, they showed that there are relativized worlds where NISZK (and thus SZK) is not in PP, PZK does not equal SZK, and NIPZK and PZK are not closed under complement.
 
 
+\subsection{Our Contributions}
 
 
 
 
-\begin{itemize}
+One of our main contributions is a new unconditional upper bound on the complexity class NIPZK.
 
-\item Reasons for using mobile devices
 
-\end{itemize}
 
+Theorem 1. NIPZK $\subseteq$ CoSBP.
 
 
-The study participants decided on the use of their MobDs in order to learn English for the reason that they regarded them as convenient, fast and always ready to use. In addition, some students pointed to the fact that the use of MobDs allowed them to have quick access to the internet and organize their own study materials and/or resources. Illustrative examples of such opinions are provided below (3):
 
+The class SBP (Small Bounded-error Probability) was introduced by B¨ohler, Glaßer, and Meister [8] and is a bounded-error version of PP. Informally, a language is in PP if there is a probabilistic polynomial-time machine for which the ratio between the acceptance and the rejection probabilities is more than 1 for all the positive instances. We obtain the class SBP when we stipulate that this ratio is bounded away from 1, i.e, (1 + $\epsilon$) for a fixed constant $\epsilon$ > 0. This restriction greatly reduces the power of the class. In particular, it is known that SBP is a subset of AM and PP, and contains MA. This class has been studied in other contexts as well, such as in circuit complexity and quantum computation [5, 2, 19, 1]. Even though the relationship between SBP and zero knowledge classes has not been studied earlier, a curious connection exists between them. Watson showed that a certain promise problem regarding the min-entropy of samplable distributions is a complete problem for SBP [25]. Interestingly, the analogous problem where entropy instead of min-entropy is considered was shown to be complete for the class NISZK [16]. Our upper bound result improves the known containments NIPZK $\subseteq$ AM $\cap$ coAM to NIPZK $\subseteq$ AM $\cap$ CoSBP and NIPZK $\subseteq$ PP to NIPZK $\subseteq$ CoSBP.
 
 
-S10: It's very comfortable. I can reach for my dictionary any time I want and I don't have to carry thick books (...) The main aspect is convenience.
 
+We consider the possibility of establishing other upper bounds for perfect zero-knowledge classes. Since NIPZK is not known to be closed under complement, is it possible to show that NIPZK $\subseteq$ SBP $\cap$ CoSBP? We also consider whether we can show that PZK itself lies in CoSBP. For these two questions, we prove the following relativized lower bound results.
 
 
-S5: It's because I can find needed information ... it's convenient because I always carry my smartphone and I have access to the internet all the time (...) At home I also use my smartphone and I don't mind it has a small screen.
 
+Theorem 2. There is an oracle O such that NIPZKO (and thus PZKO) is not in SBPO.
 
+This result along with Theorem 1 implies that NIPZK is not closed under complement in a relativized world, a result that was recently established by Bouland et al. [10].
 
-S14: My tablet lets me organize things and keep my documents in one place. This is because studying English means having countless study materials (...) I can store them there (...) this also gives me easier access to them (...) In addition, my smartphone can successfully replace a traditional paper dictionary and I don't have to waste time in thumbing through a lot of pages to find words I'm looking for.
 
 
+Theorem 3. There is an oracle O such that PZKO is not in CoSBPO.
 
-\begin{itemize}
 
-\item Resources and tools
 
-\end{itemize}
+As Theorem 1 relativizes with respect to any oracle, Theorem 1 and Theorem 3 together implies an oracle that separates PZK from NIPZK.
 
 
 
-The analysis of the data revealed that the students made use of both online resources and mobile apps. The most frequently used language tools were online dictionaries (e.g. diki, ColorDict Dictionary) and a variety of mobile apps, such as Google Translate, Duolingo and Fiszkoteka. The students usually accessed these tools in order to check, revise and learn the target language vocabulary. Two students also reported using Voscreen and WhatsApp, i.e. mobile apps for watching video and communicating with people, respectively. It should also be noted that the interviewees pointed out various online resources they used with the purpose of practicing reading and listening skills  (e.g. TED,  online  newspapers, YouTube),  vocabulary  (e.g. 6  Minute English, PONS, Google  Translate)  and  having  access  to  language  materials (e.g. Academica). Finally, some students used their MobDs in order to read language materials downloaded from the internet (e.g. PDF files). The following responses illustrate some of these issues:
+Corollary 1. There is an oracle O such that NIPZKO Ç PZKO.
 
 
 
-S5: I use apps for ``index cards'', dictionaries and a variety of apps for developing English vocabulary.
+Figure 1 summarizes the known relationships among perfect zero knowledge classes and other complexity classes along with the results established in this work.
 
 
 
-S10: I have some online friends and I talk with them in English (Do you do this by means of instant messaging applications?) Yes, I use WhatsApp Messenger.
+PP
 
 
 
-S15: I often read scanned book pages and pdf materials (\dots{}) I access English vocabulary by means of online dictionaries.
+AM BPPpath CoAM
 
 
 
-S20: Fiszkoteka. I frequently use this app (...) I also listen to podcasts and I have the app called Six minutes English in order to practice listening (...) Also because vocabulary is used in a variety of contexts.
+NIPZK CoNIPZK
 
 
 
-\begin{itemize}
+Fig. 1: A $\rightarrow$ B indicates that A is a subset of B, A $-$$-$· B indicates that there is a relativized world where A
 
-\item Mobile encounters
 
-\end{itemize}
 
+is not a subset of B. Red and Blue arrows indicate new results.
 
 
-Thirteen (65\%) interviewees claimed to use their MobDs most frequently in their leisure time, six (30\%) in the classroom and one student said he had used his smartphone equally frequently in the classroom and out-of-class English study. As for the students who used their smartphones or tablet computers in their leisure time, some of them did it with the aim of reading English texts, listening to audio resources, checking and learning new vocabulary, preparing multimedia presentations and playing language games. This is not to say, of course, that this group of learners did not use their MobDs at all during classes; however, the use of MobDs in this respect was only limited to checking target language vocabulary (e.g. S1: I use my smartphone, for example, to check something I don't understand (...) I installed a dictionary and I use it to find words). When it comes to the subjects who claimed to use their MobDs most frequently in the classroom, they used them to check unfamiliar vocabulary and/or find words they needed during various language activities. It is also important to note that these students were not very willing to use their MobDs at home in view of the fact that they favored their home computers. For example:
 
+Complexity of Distribution Testing Problems. We establish our results by investigating certain distribu- tion testing problems: computational problems over high-dimensional distributions represented by succinct Boolean circuits. Interestingly, it turns out that versions of distribution testing problems characterize var- ious zero-knowledge classes. The distribution testing problems are best formalized as promise problems. A promise problem is a pair of sets $\Pi$ = ($\Pi$Y es, $\Pi$No) such that $\Pi$Y es $\cap$ $\Pi$No = $\emptyset$. $\Pi$Y es is called the set of `yes' instances, and $\Pi$No is called the set of `no' instances. Given a Boolean circuit C mapping from m bits to n bits, the distribution sampled by C is obtained by uniformly choosing x $\in$ \{0, 1\}m and evaluating C on x. We often use C itself to denote the distribution sampled by the circuit C.
 
 
-S7: I use them outside of University in order to learn and practice English vocabulary and to prepare multimedia presentations.
 
+Statistical Difference (SD): Given two distributions sampled by Boolean circuits C and D, $\Pi$Y es =
 
 
-S13: In my free time I learn English words and phrases, listen to English recordings and I read various texts in English.
 
+\{$\langle$C, D$\rangle$ | dist (C, D) $\leq$ 1/n\} and $\Pi$No = \{$\langle$C, D$\rangle$ | dist (C, D) $\geq$ 1 $-$ 1/n\}.
 
+Here dist denotes the statistical distance between the distributions. When one of the distributions is the uniform distribution, the above problem is called Statistical Difference to Uniform (SDU). The seminal work of Sahai and Vadhan showed that SD is complete for the class SZK [24] and Goldreich, Sahai and Vadhan showed that SDU is complete for NISZK [16].
 
-S19: Yes, I use my smartphone and tablet for out-of-class learning but I also use them during classes mostly to check words and collocations.
 
 
+Entropy Approximation (EA) : Given a samplable distribution C and an integer k, $\Pi$Y es = \{$\langle$C, k$\rangle$ | H(C) $\geq$
 
-S16: I think I do this during practical English language classes more regularly in the classroom than outside of it (...) In the classroom I check English words in digital dictionaries (...) I do this to check words, spelling, or to recall some words (...) or I use my smartphone to look for synonyms (...).
 
 
+k + 1\} and $\Pi$No = \{$\langle$C, k$\rangle$ | H(C) $\leq$ k $-$ 1\}, where H is the entropy function.
 
-The analysis of the gathered data also demonstrated that the majority of the interviewees (13 or 65\%) were in favor of using their smartphones and/or tablet computers for informal English learning (i.e. learning the target language for pleasure) and 7 (35\%) students associated the use of their MobDs with formal learning (i.e. related to their studies). It should be noted, however, that only two interviewees claimed to hold and somewhat organize regular mobile English language sessions:
 
 
+Goldreich, Sahai and Vadhan showed that Entropy Approximation is complete for NISZK. In the above problem, if the entropy function H is replaced with the min-entropy function H$\infty$, the corresponding problem is known as Min-entropy Approximation (MEA). Watson showed that MEA is complete for SBP [25]. It is interesting to note that while Entropy Approximation is NISZK-complete, the analogous Min-entropy Approximation problem is complete for SBP.
 
-S10: I think this is what I have talked about earlier, I mean these chats with my friends. Perhaps we don't chat very regularly ... we chat three times a week and that's it but, at the same time, it's not sporadic because we arrange it and it takes place pretty regularly.
 
 
+To establish our results, we study variants of the above distribution testing problems. The following problem, known as Uniform, is defined by Malka and was shown to be complete for NIPZK [21].
 
-S16: I often watch videos on YouTube and I do this the most often through my smartphone.
 
 
+Uniform: Given a circuit D : \{0, 1\}m $\rightarrow$ \{0, 1\}n+1, let D[1 . . . n] denote the distribution of the first n bits of D and let D[n + 1] denote the distribution of the last bit of D. $\Pi$Y es = \{$\langle$D$\rangle$ | D[1 . . . n] = Un, Pr[D[n + 1] = 1] $\geq$ 2/3\} and $\Pi$No = \{$\langle$D$\rangle$ | |sup(D) $\cap$ \{0, 1\}n1| $\leq$ 2n/3\}.
 
-Finally, it has to be noted that the use of mobile devices was not explicitly advised or suggested by the interviewees' teachers during their practical English language classes or any other classes at the university. This is not to say, of course, that they never referred their students to electronic or online resources; however, they did not ask students to use them in classes, they did not recommend any mobile apps or design language tasks which required using such devices in order to solve them.
 
 
+Here Un denotes the uniform distribution over n-bit strings and sup(D) is the support of the distribution
 
-\begin{itemize}
 
-\item Language practiced
 
-\end{itemize}
+D. We obtain Theorem 1 by showing that Uniform is in CoSBP.
 
 
 
-When asked to indicate the most frequently practiced language skills and subsystems by means of mobile devices, all the interviewees indicated the target language vocabulary. In addition to this, some referred to pronunciation and only a few students mentioned grammar and practicing reading, listening and speaking skills. As far as practicing English vocabulary is concerned, the subjects chose to practice it through their smartphones and/or tables because they regarded this language subsystem as the most important to learn, they praised their MobDs for providing them with quick and easy access to needed words and see the way they were used in given sentences. As was stressed by many of the interviewees, learning English vocabulary by means of mobile devices also allowed them to check correct pronunciation of words (i.e. they listened to it or paid attention to phonetic transcription of words). The following excerpts exemplify the most typical usage of MobDs by the study participants:
+Note that we can obtain relativized versions of the distribution testing problems by providing oracle access to the circuits involved. To obtain Theorem 2, we consider a promise problem that is a variant of Uniform.
 
 
 
-S3: (\dots{}) as for vocabulary I guess it's much faster to search for words and know how to use them in sentences.
+Uniform-Or-Small: Given a distribution D, $\Pi$Y es = \{$\langle$D$\rangle$ | D = U \} and $\Pi$No = \{$\langle$D$\rangle$ | |sup(D)| $\leq$ 2n/2\}
 
+We show that a relativized version of this problem is not in SBP. For Theorem 3, we consider a variant of SD called Disjoint-Or-Identical.
 
 
-S6: It's easy and it's very easy to look for words when I need them.
 
+Disjoint-Or-Identical: Given two samplable distributions C and D, $\Pi$Y es = \{$\langle$C, D$\rangle$ | sup(C)$\cap$sup(D) =
 
 
-S12: (\dots{}) I need vocabulary not only to communicate in English (\dots{}) when I look for words I look at contexts words are used (...) I always pay attention to spelling and also listen to pronunciation (How about phonetic transcription of words?) Phonetic transcription of words ... yes but not often unless audio is poor quality or it seems to sound somehow differently ... then I make sure how a word is pronounced and I read its phonetic transcription given there.
 
+$\emptyset$\} and $\Pi$No = \{$\langle$C, D$\rangle$ | C = D\} (i.e, the distance between C and D is either 1 or 0).
 
 
-As mentioned earlier, only a few students resorted to their MobDs in order to practice other language areas such as listening, reading and speaking as well as grammar. This is because they preferred more traditional resources (e.g. grammar books), they used other devices (e.g. laptop computers) or they regarded themselves as quite proficient in particular language skills and thus they did not feel the need to master them by way of MobDs. Representative excerpts from the interviewees' responses follow:
 
+This problem can be shown to be in CoPZK. We construct an oracle relative to which this problem is not in SBP. Theorems 2 and 3 show that there exist relativized worlds where PZK is neither in SBP nor in CoSBP. This suggests that we cannot hope to improve the containment PZK $\subseteq$ PP to either SBP or CoSBP using relativizable techniques.
 
 
-S3: When it comes to grammar, for me it's more convenient to use grammar books to learn it.
 
 
+\subsection{Notation and Definitions}
 
-S2: (\dots{}) I'm pretty good at English grammar and listening and I don't have to use my smartphone to learn these language elements.
 
 
 
-S12: I think I'm quite good at grammar and I practice listening skills by means of my laptop computer.
+Distributions. All the distributions considered in this paper are over a sample space of the form \{0, 1\}n for some integer n. Given a distribution D, we use D(x) to denote the probability of x with respect to D. We use Un to denote the uniform distribution over \{0, 1\}n. We consider distributions sampled by circuits. Given a circuit C mapping m-bit strings to n-bit strings, the distribution encoded/sampled by the circuit C is the distribution C(Um). We often use C to denote both the circuit and the distribution sampled by it. Note that given access to the circuit, we can efficiently generate a sample of the distribution by evaluating C on a uniformly chosen m-bit string. For this reason, we call such distributions efficiently samplable distributions or just samplable distributions. We use sup(D) to denote the set of strings for which D(x) /= 0.
 
 
 
-\begin{itemize}
+Given two distributions C and D over the same sample space S, the statistical distance between them, denoted by dist (C, D), is defined as follows.
 
-\item Study performance
 
-\end{itemize}
 
+dist (C, D) = max(C(T ) $-$ D(T )) =
 
 
-There is evidence that the use of mobile devices became an impetus for studying English more and learn this language more effectively and efficiently (this advantageous effect was expressed by as many as 15 or 75\% interviewees). This is because access to a smartphone or a tablet allows some learners devote more time to learning English (S1: Yes, I think so. I think I spend more time ... If I was to use traditional materials, for example, books, I wouldn't devote so much time to it.; S15: It seems to me that I dedicate more time to learn English this way and I learn more.), encouraged another student to learn more (S6: I'm more willing to use my smartphone than open a paper dictionary.) and allowed yet another subject to learn more vocabulary (S12: Yes, definitely. I wouldn't have learned these words if I hadn't used my phone.). Such beneficial outcomes of the use of MobDs are best described by one of the interviewees who said:
 
+T $\subseteq$S
 
 
-If I'm to say that I devote more time for learning English it's because I can devote more time to learning it ... in the way I compare a paper dictionary with an online one ... for example to check one word ... If I use a traditional dictionary it takes me longer, say three minutes, but If I use an online dictionary it takes me, say, ten seconds (...) this way I can devote less time to looking for information and more on language production, on the use of English ... there is less time used but it's more effective. (S14) It is also interesting to note that the use of mobile devices might be valuable for kinesthetic or tactical language learners:
 
+(C(x) $-$ D(x))
 
 
-I think I spend more time \dots{} for me it's much nicer and more interesting than sitting and reading books \dots{} it's better for me since I'm kinesthetic so it's hard for me to sit and read a traditional book ... it's because I don't remember then much but when I use my smartphone which is mobile I can ... I can do it while doing other activities and this makes things easier for me. (S5) Finally, it should be noted that 5 (25\%) interviewees were not able to say whether or not the use of mobile devices made them study the target language more effectively or efficiently and they expressed their opinion by simply claiming that ``It's difficult to say''.
 
+C(x)>D(x)
 
+Complexity Classes We refer the reader to the textbook by Arora and Barak [4] for definitions of stan- dard complexity classes. For a complexity class C, CoC denotes the class of complement languages/promise problems from C. The class SBP was introduced in [8] and is defined as follows.
 
-\begin{itemize}
 
-\item Discussion and conclusions
 
-\end{itemize}
+Definition 1. A promise problem ($\Pi$Y es, $\Pi$No) is said to belong to the complexity class SBP if there exists a constant $\epsilon$ > 0, a polynomial p(·), and a probabilistic polynomial-time Turing Machine M such that
 
 
 
-The picture that emerges from the analysis of the collected data regarding the advanced learners' use of mobile devices for learning English is relatively encouraging. This is because all the study participants used, at least to some extent, their mobile devices (i.e. smartphones and/or tablet computers) in order to learn the English language autonomously. Moreover, the positive impact of using mobile devices for English study was acknowledged by the majority of the interviewees. Their beneficial contribution to their English development was chiefly linked with easy access to English language resources, the opportunity to store them, comfort in using their smartphones and tablets anywhere and anytime as well as perceived gains in English learning. The results of the study also showed that all interviewees engaged with their smartphones and/or tablet computers to practice the target language vocabulary (plus some students also claimed to learn pronunciation of English words) and the majority of the subjects used their mobile devices autonomously in their leisure time as well as during language classes. Such a state of affairs can be explained in terms of increased awareness on the part of some students of the beneficial role of MobDs in foreign language learning, their ability to reach for appropriate tools and retrieve needed information to achieve their goals and adjust their learning of the target language to their personal learning styles.
+If x $\in$ $\Pi$Y es then Pr[M accepts] $\geq$ 1+$\in$
 
 
 
-Despite this positive view of MobDs reported by the study participants, the results of the study also revealed that only a few subjects engaged with their mobile devices to master target language skills such as reading, listening, writing and speaking as well as English language grammar. In addition, some interviewees limited themselves to a rather intuitive and perhaps even spontaneous use of their mobile devices in the language classroom. It should also be noted that almost half of the subjects regarded themselves as quite inexperienced in using their mobile devices when it comes to learning the English language despite the fact that some of the students had been using them with the intention of learning English for years. Taking all these findings into account, one may conclude that this is due to a failure or underestimation of the role and place of mobile devices in foreign language learning and teaching on the part of language teachers. It seems therefore warranted to say that the subjects' use of mobile devices could be altered if teachers took into account the benefits they may offer. For this reason language teachers should, for instance, present the affordances of mobile technology and discuss them with students during language classes. They should also select mobile apps and create opportunities for using them in- and out-of-class learning by offering or designing tasks devoted to practicing a variety of language skills and subsystems suitable for the use of such devices. If this were to happen, teachers need to respond quickly to the constant and dynamic changes in contemporary foreign/second language learning and teaching contexts by undergoing official teacher training not only in the area of technology-mediated language learning and teaching but also in the context of learner autonomy.
+If x $\in$ $\Pi$No then Pr[M accepts] $\leq$ 1 ,
 
 
 
-As with all studies, the study reported in this paper has some limitations. Although the interviewees represented a range of experience of English language learning, the small number of participants reduces the generalizability of the results. Another limitation is related to the fact that the group was largely homogenous, i.e. the subjects came from the same institution and all studied English. Yet another weakness may concern the data collection instrument, namely the semi-structured interview which was conducted only once. Perhaps a different set of questions, their wording or a series of such interviews carried out over a particular period of time (say one academic year) may have yielded more detailed and insightful results. Despite these limitations, this study provided some insights into why and how advanced English language learners engage with their mobile devices to develop learning experiences. It should be stressed, however, that teacher involvement in creating conditions conducive to the use of mobile devices for language study may result in greater learner engagement with mobile technology (i.e. mobile devices) and, at the same time, may lead to greater students' independence in learning the target language.
+SBP is sandwiched between MA and AM and is the largest known subclass of AM that is in PP. In fact, it is known that SBP is contained in the class BPPpath which is a subclass of PP.
 
 
+
+Theorem 4 ([8]). MA $\subseteq$ SBP $\subseteq$ AM and SBP $\subseteq$ BPPpath $\subseteq$ PP.
+
+
+
+Although we will not be using explicit definitions of zero-knowledge classes, we give necessary definitions for completeness.
+
+
+
+Definition 2 (Non-Interactive protocol). A non-interactive protocol is a pair of functions $\langle$P, V $\rangle$, the prover and verifier. On input x and random strings rI, rP , P sends a message $\pi$ = P (x, rP , rI ) to V , and
+
+
+
+V computes m = V (x, $\pi$, rI ). V accepts x if m = 1, and rejects if m = 0. The transcript of the interaction is the tuple $\langle$x, rI, $\pi$, m$\rangle$.
+
+
+
+Note that the above definition implies that the random string rI is shared between the prover and the verifier.
+
+
+
+Definition 3 (NIPZK[21, 16]). A promise problem $\langle$$\Pi$Y es, $\Pi$No$\rangle$ is in NIPZK (Non-Interactive Perfect Zero Knowledge) if there is a non-interactive protocol $\langle$P, V $\rangle$ where V runs in polynomial time, and a ran- domized, polynomial-time computable simulator S, satisfying the following conditions:
+
+
+
+(Soundness:) For any function P $*$ and any x $\in$ $\Pi$No, Pr[V accepts] $\leq$ 1/3
+
+
+
+(Completeness:) If x $\in$ $\Pi$Y es, Pr[V accepts] $\geq$ 2/3
+
+
+
+(Zero Knowledge:) For any x $\in$ $\Pi$Y es, the distribution of S(x) is identical to the distribution of the transcript generated by $\langle$P, V $\rangle$ on input x.
+
+The class NISZK (Non-Interactive Statistical Zero Knowledge) is defined similarly [16], except that we only require that the statistical distance between the distribution of S(x) and the distribution of the tran- script generated by $\langle$P, V $\rangle$(x) be less than 1/p(n) for every polynomial p(n). Malka [21] showed that the promise problem Uniform is complete for the class NIPZK.
+
+
+
+Theorem 5 ([21]). The promise problem Uniform is complete for NIPZK.
+
+
+
+
+\subsection{NIPZK $\subseteq$ CoSBP}
+
+
+
+
+For a given distribution D, let CP(D) denote the collision probability: Prx,y$\sim$D(x = y). The following lemma is folklore. See [15] for a proof.
+
+
+
+2
+
+
+
+Lemma 1. For a given distribution D over \{0, 1\}n, if dist (D, Un) $\geq$ $\epsilon$, then CP(D) $\geq$ 1+$\in$
+
+
+
+Theorem 1. NIPZK $\subseteq$ CoSBP
+
+
+
+We show the result by proving that the NIPZK-complete problem Uniform is in CoSBP. We start with the following lemma.
+
+
+
+Lemma 2. Let D be a distribution on n + 1 bits, and let T = \{x $\in$ \{0, 1\}n | x1 $\in$sup(D)\}. Suppose that
+
+
+
+|T | $\leq$ 2n/3 and Pr(D[n + 1] = 1) = 1 + $\epsilon$ for some $\epsilon$ $\geq$ 0. Then dist (D[1 . . . n], Un) is at least $\epsilon$. Proof. Recall that dist (D[1 . . . n], Un) = maxS$\subseteq$\{0,1\}n Prd$\sim$D[1...n][d $\in$ S] $-$ Pru$\sim$Un [u $\in$ S]
+
+
+
+max n Pr [d $\in$ S] $-$ Pr [u $\in$ S] $\geq$ Pr [d $\in$ T ] $-$ Pr [u $\in$ T ]
+
+
+
+S$\subseteq$\{0,1\}
+
+
+
+d$\sim$D[1...n]
+
+
+
+u$\sim$Un
+
+
+
+d$\sim$D[1...n]
+
+
+
+$\geq$ 1 + $\epsilon$ $-$ Pr
+
+
+
+u$\sim$Un
+
+
+
+[u $\in$ T ]
+
+
+
+3 u$\sim$Un
+
+
+
+3 2n
+
+
+
+1 2n n
+
+
+
+$\geq$ + $\epsilon$ $-$ /2 = $\epsilon$
+
+
+
+3 3
+
+
+
+Now we prove Theorem 1 by giving a CoSBP algorithm for Uniform.
+
+
+
+Proof. Recall the definition of Uniform: Given a circuit D : \{0, 1\}m $\rightarrow$ \{0, 1\}n+1, $\Pi$Y es = \{D : D[1 . . . n] =
+
+
+
+Un, Pr[D[n + 1] = 1] $\geq$ 2/3\} and $\Pi$No = \{D : |sup(D) $\cap$ \{0, 1\}n1| $\leq$ 2n/3\}.
+
+
+
+Consider the following randomized algorithm: Given D as input, get two samples d0 and d1 from D. If the first n bits of both d0 and d1 are the same, then accept. Else, obtain k additional samples from D, and if the last bit of all these samples is 0, then accept, otherwise reject.
+
+
+
+If D is a `yes' instance of Uniform, then the probability of accepting at the first step is 1 and the
+
+probability of accepting at the second step is at most 1 , so the overall accept probability is $\leq$ 1 + 1 .
+
+
+
+3k 2n 3k
+
+
+
+Suppose that D is a `no' instance of Uniform. By lemma 2, either D[1 . . . n] is at least 1 away from Un, or
+
+
+
+1 6
+
+
+
+D[n + 1] is 1 with probability at most 2 . Suppose that D is at least 1/6 away from the uniform distribution,
+
+
+
+then by Lemma 1, the probability that the first n bits of d0 and d1 are the same is at least 37 1 . Thus
+
+
+
+the algorithm accepts with probability at least 37 1 . Now suppose that D is less than 1/6 away from the uniform distribution. This implies that the last bit of D is 1 with probability at most 1/2. Thus in this case the algorithm accepts with probability $\geq$ 1 . Thus, a no instance is accepted with probability $\geq$ min 37 1 , 1 .
+
+
+
+Choose k = n $-$ log(37/36), so that a no instance is accepted with probability $\geq$ 37 1 and a yes instance is
+
+
+
+accepted with probability $\leq$ 1 + 3log(37/36) . For large enough n, 37 1 $\geq$ (1 + 1 )( 1 + 3log(37/36) ), so this is
+
+
+
+2n 3n
+
+
+
+a CoSBP algorithm for for Uniform.
+
+
+
+36 2n
+
+
+
+40 2n 3n
+
+
+
+
+\subsection{Oracle Separations}
+
+
+
+
+In this section, we prove Theorems 2 and 3. We first prove a general approach that can be used to construct relativized worlds where promise problems involving circuits are not in SBP.
+
+
+
+Lemma 3. Let $\Pi$ = $\langle$$\Pi$Y , $\Pi$N $\rangle$ be a promise problem whose instances are circuits. If there is an oracle circuit family \{Cn\}n$\geq$0 and a constant c > 1 with the following properties:
+
+
+
+Cn is a oracle circuit that maps n bits to n bits and makes oracle queries only to strings of length cn.
+
+
+
+There exist families of sets \{An\}n$\geq$0, \{Bn\}n$\geq$0 $\subseteq$ \{0, 1\}cn such that for all n, CAn $\in$ $\Pi$Y and CBn $\in$ $\Pi$N
+
+
+
+n n
+
+
+
+For every probabilistic polynomial-time Turing Machine M and infinitely many n, for every Di $\in$
+
+
+
+\{Ai, Bi, $\emptyset$\}, 1 $\leq$ i < n
+
+
+
+($\cup$n$-$1D )$\cup$A
+
+
+
+($\cup$n$-$1Di)$\cup$An
+
+
+
+Pr[M
+
+
+
+i=1 i
+
+
+
+n (Cn i=1
+
+
+
+n$-$1
+
+
+
+)accepts]
+
+
+
+< 2,
+
+
+
+Pr[M ($\cup$n$-$1Di)$\cup$Bn (C($\cup$i=1 Di)$\cup$Bn )accepts]
+
+
+
+i=1 n
+
+
+
+then there exists an oracle O such that $\Pi$O /$\in$ SBPO
+
+Proof. We first note that in this definition of SBP, we can choose $\epsilon$ to be 1 by using amplification techniques. Thus a promise problem is in SBP if there exists a polynomial p(·) and a probabilistic polynomial-time machine M such that on positive instances M accepts with probability at least 2/2p(n) and on negative instances M accepts with probability at most 1/2p(n). We call p(·) the threshold polynomial for M .
+
+
+
+Let \{Mi\}i>0 be an enumeration of the probabilistic polynomial-time machines. We consider an enumera- tion of tuples $\langle$Mi, j$\rangle$i>0,j>0. In this enumeration considering $\langle$Mi, j$\rangle$ corresponds to the possibility that Mi is a SBP machine with threshold polynomial nj. We first start with an empty oracle. Let Oi = O $\cap$ \{0, 1\}ci. For each i, Oi will be one of $\emptyset$, Ai or Bi. Consider $\langle$Mi, j$\rangle$ and let n be a length for which On is not yet defined and for which the inequality from the lemma holds for the machine Mi. Suppose that Mi makes queries of length $\leq$ m. Note that by this, we have defined Oi for all i < cn, thus O $\subseteq$ \{0, 1\}<cn and for every i < n Oi
+
+
+
+is either $\emptyset$, A or B . Suppose that the acceptance probability of MO$\cup$An (CAn nj
+
+
+
+i i i
+
+
+
+) is less than 2/2
+
+
+
+. We set O
+
+
+
+at length cn as An and for all the lengths from cn + 1 to m the oracle O is set to be $\emptyset$. Now CAn is a positive instance for which Mi cannot be a SBP machine with nj as the threshold polynomial. Then we set O at length cn as An and move to the next tuple in the enumeration. Suppose that MO$\cup$An (CAn ) accepts with
+
+
+
+probability at least 2/2nj
+
+
+
+nj
+
+
+
+. Now by the inequality from lemma 3, the acceptance probability of MO$\cup$Bn (CBn )
+
+
+
+Bn
+
+
+
+is more than 1/2
+
+
+
+. Note that C
+
+
+
+is a negative instance for which Mi is not a SBP machine with threshold
+
+polynomial nj. Thus we make the oracle O at length cn to be Bn. It is easy to see that $\Pi$O is not in SBPO: Suppose not, and there exists a probabilistic polynomial-time machine Mi with threshold polynomial nj. When we considered the tuple $\langle$Mi, j$\rangle$, we ensured that Mi does not have threshold polynomial nj on COcn .
+
+
+
+Oracle Separation of NIPZK from SBP
+
+
+
+In this section we show that Theorem 2 cannot be improved to show that NIPZK is a subset of SBP using relativizable techniques. For this we show that the oracle version of Uniform-Or-Small is not in SBP.
+
+
+
+Theorem 6. There exists an oracle O relative to which Uniform-Or-Small is not in SBPO.
+
+
+
+Malka [21] showed that Uniform-Or-Small is in NIPZK, and this proof relativizes. Combining this with Theorem 6, we obtain Theorem 2. To prove Theorem 6, it suffices to exhibit sets An and Bn that satisfy the conditions of Lemma 3. We construct these sets via a probabilistic argument. We first provide a brief overview of this construction.
+
+Remark: There is a alternate proof of the oracle separation between NIPZK from SBP which we describe here briefly. This was pointed out to us by one of the reviewers of TCC 2020. The proof uses known facts about the well-studied Permutation Testing Problem (PTP). PTP takes as input a truth table of a function f : [N ] $\rightarrow$ [N ] promised to be either a permutation on [N ] or N/3 away in Hamming distance from any permutation on [N ]. The computational goal is to distinguish these two cases. It is known that in the query- complexity setting, there is a NIPZK protocol where the verifier uses public randomness to pick a uniform random element x from [N ], which is viewed as an element from the range of the function, and the prover is required to present a preimage of x. Aaronson, in [1] (Theorem 13), gave the construction of an oracle separating SZK from the Quantum version of SBP using degree arguments. The oracle is derived from the PTP problem where the author uses a SZK upper bound for PTP. However, as noted above the upper bound of NIPZK holds for PTP and hence it gives an oracle separation of NIPZK from SBP. Here we provide an oracle separation using elementary arguments.
+
+
+
+Overview of the proof: Consider a non-relativized world with the following restriction on how a probabilistic polynomial-time machine M can access the input circuit C: At the beginning the machine gets to see a sequence S of k independent samples from C. After this the machine ignores C. Note that in this model the underlying machine cannot perform adaptive sampling from C, nor can the machine generate samples that might be correlated. In this model it is easy to see that if C encodes the uniform distribution, the probability that M is presented with a specific sequence S of k samples is precisely 1/2nk. Thus the probability that the machine M accepts is S Pr[M accepts S] , summed over all sequences of size k.
+
+Now given a subset D of \{0, 1\}n of size 2n/2, let UD be the uniform distribution over D. Consider the following experiment. Randomly pick D and let CD be a circuit that samples UD. Independently draw a sequence of k samples S from UD and present them as input to M . (In a non-relativized setting, there may not be a small circuit that uniformly samples D, but in the relativized worlds we consider, this is not an issue.) We consider the acceptance probability of M over random choices of D, S and internal coin tosses of
+
+
+
+M . By a careful analysis we can show that this probability is very close to S Pr[M accepts S] . Thus the ratio between the acceptance probabilities of M when given samples from the uniform distributions and samples drawn from UD (over a random choice of D) is less than 1 + $\epsilon$ for any constant $\epsilon$. By a probabilistic
+
+
+
+argument, there exists a subset D such that the acceptance probability of M on a positive instance (U ) and a negative instance (UD) are the same. Thus M is not a SBP machine.
+
+
+
+The crux of the above idea is that when the samples are generated independently and nonadaptively, then it is possible to argue that a SBP machine cannot distinguish between whether they came from the uniform distribution or from a distribution with small support size. Now, we need to argue in the more general model, where a probabilistic machine can do adaptive sampling and generate samples that could be correlated to each other. A first approach to construct the sets An and Bn is to encode the uniform distribution in An and the distribution UD in Bn. The set An can be defined as \{$\langle$i, j$\rangle$ | the ith bit of the jth string of $\Sigma$n is 1\} (in the standard lexicographical ordering). To define Bn given D, first consider the multiset D that contains 2n/2 copies of each elements of D. Thus the cardinality of D is 2n. Now, the set Bn can be defined as tuples
+
+
+
+$\langle$l, j$\rangle$ where the lth bit of the jth string of D is 1. Consider the oracle circuit C which is defined as follows:
+
+Definition 4 (Oracle Circuit). Let CO be a fixed linear-size oracle circuit, with n inputs and n outputs, defined as follows: On input j $\in$ \{1 . . . 2n\}, CO(j) outputs O($\langle$l, j$\rangle$) for all l between 1 and n. In other words, CO(j) outputs the jth string of O.
+
+
+
+Notice that CAn is the uniform distribution and CBn is uniform on D and the goal of the probabilistic machine is to distinguish between the distributions CAn and CBn . However, if we allow correlated sampling, a probabilistic machine can easily distinguish CAn and CBn by computing CO(j) and CO(j +1) for appropriate inputs j and j + 1 and comparing whether they are equal or not. To guard against such behavior, we apply one more level of randomization - randomize the underlying order of the strings. Thus the tuple $\langle$l, j$\rangle$ will encode the lth string in an order that is not necessarily the standard lexicographic order. We argue that when we randomly order \{0, 1\}n, then adaptive and correlated sampling does not give significantly more information than independently generated samples. Now, we proceed to give a formal proof.
+
+
+
+Detailed proof: From now on, we fix a length n. We use a probabilistic argument to construct An and Bn. For An we consider 2n! sets Yi and define An to be one of them (using a probabilistic argument), and similarly for Bn we consider many sets NDi and define Bn to be one of them.
+
+
+
+Definition 5 (Oracle families). Let 1 $\leq$ i $\leq$ 2n! index the set of all 2n! permutations of \{0, 1\}n. Oracles for Yes instances: Yi = \{$\langle$l, j$\rangle$: the lth bit of the jth string of the ith permutation of \{0, 1\}n is 1\}.
+
+
+
+Oracles for No instances: For each set D of size d = 2m (where m = n/2 ) let D be the multiset that contains
+
+
+
+2n$-$m copies of each element of D. Thus |D| = 2n, and we define ND as: ND = \{$\langle$l, j$\rangle$: the lth bit of the
+
+
+
+i
+
+
+
+jth string of the ith permutation of D is 1\}.
+
+
+
+For the rest of this section, we will use Y to represent an arbitrary Yi oracle, N to represent an arbitrary
+
+ND oracle, and O to represent an arbitrary Yi or ND . Note that for every i, CYi is the uniform distribution
+
+
+
+i i
+
+
+
+and CNDi is the uniform distribution on D and thus has small support.
+
+
+
+We first prove the following lemma and show later how to build on it to arrive at the conditions specified in Lemma 3.
+
+
+
+Lemma 4. If i is uniformly chosen from \{1, . . . , 2n!\} and D is uniformly chosen from all size 2m subsets of
+
+
+
+\{0, 1\}n, then for any constant c > 1 and every probabilistic polynomial-time algorithm A, for large enough
+
+
+
+n,
+
+
+
+Pri,r[AYi accepts CYi ]
+
+
+
+$\leq$ c
+
+
+
+Pr [ANDi accepts CNDi ]
+
+
+
+where r is the random choice of A.
+
+
+
+Without loss of generality we can assume that any oracle query that AO makes can be replaced by evaluating the circuit CO, by modifying A in the following way: whenever A queries the oracle O for the ith bit of the jth string, it evaluates CO(j) and it extracts the ith bit. We refer to this as a circuit query. Let k be the number of circuit queries made by A, where k is bounded by a polynomial. We will use q1, . . . qk to denote the circuit queries, and denote the output CO(qi) by ui. We can assume without loss of generality that all qi are distinct. We use S to denote a typical tuple of answers $\langle$u1, · · · , uk$\rangle$. We will use AS to denote the computation of algorithm A when the answers to the circuit queries are exactly S in that order. Notice that the AS does not involve any oracle queries. Once A has received S, it can complete the computation without any circuit queries. So, the output of AS is a random variable that depends only on the internal randomness r of A.
+
+
+
+Claim. Without loss of generality we can assume that along any random path, A rejects whenever any
+
+
+
+ui = uj, i /= j.
+
+Proof. In a Yes instance, CY is uniform. Since C has n inputs and n outputs, CY is a 1-1 function. By the earlier assumption, ui will never match any other uj. In a No instance, CN will have 2n$-$m inputs for any output. Rejecting any time ui = uj will not affect Pr[A accepts a Yes instance], and it will re- duce Pr[A accepts a No instance]. Thus the ratio of the probability of accepting an Yes instance and the probability of accepting a No instance only increases. We will show that this higher ratio is < c.
+
+
+
+We will use the following notation.
+
+
+
+``AO asks $\langle$q, i$\rangle$'' is the event that ``the ith circuit query made by A is CO(q).'' For simplicity, we write this event as ``AO asks qi.''
+
+
+
+``AO gets $\langle$u, i$\rangle$'' is the event that ``CO(q) = u where q is the ith query''. Again, for simplicity, we write this event as ``AO gets ui.''
+
+
+
+For S = $\langle$u1, . . . uk$\rangle$, ``AO gets S'' is the event that ``AO gets u1 and AO gets u2 and . . . AO gets uk (in that order)''.
+
+
+
+Lemma 5. For any probabilistic algorithm A and for any fixed S = $\langle$u1, . . . uk$\rangle$ where all ui are distinct,
+
+
+
+Pr[AYi gets S and accepts] = Pr[A accepts] Y 1
+
+
+
+Proof.
+
+
+
+Pr[AYi gets S and accepts] = Pr[AYi gets S] $\times$ Pr[AYi accepts |AYi gets S]
+
+
+
+i,r
+
+
+
+i,r
+
+
+
+i,r
+
+
+
+= Pr[AYi gets S] $\times$ Pr[AS accepts]
+
+
+
+i,r r
+
+
+
+The last equality is because AS is independent of i as discussed before. We will show that Pri,r[AYi gets S] =
+
+
+
+Qk$-$1 1 which will prove the lemma.
+
+
+
+k$-$1
+
+
+
+Pr[AYi gets S] = Pr[AYi gets uj+1|AYi gets $\langle$u1, u2, . . . , uj$\rangle$]
+
+
+
+For any fixed j let Ej denote the event ``AYi gets $\langle$u1, u2, . . . , uj$\rangle$''. Then,
+
+
+
+Pr[AYi gets uj+1|AYi gets $\langle$u1, u2, . . . , uj$\rangle$] = Pr[AYi gets uj+1|Ej]
+
+
+
+i,r
+
+
+
+i,r
+
+
+
+= $\Sigma$ Pr[AYi asks qj+1|Ej] $\times$ Pr[CYi (qj+1) = uj+1|Ej]
+
+
+
+qj+1
+
+
+
+= $\Sigma$ Pr[AYi asks qj+1|Ej] $\times$ Pr[CYi (qj+1) = uj+1|Ej]
+
+
+
+= $\Sigma$ Pr[AYi asks q |E ] $\times$ 1
+
+
+
+= 1 $\times$ $\Sigma$ Pr[AYi asks q |E ]
+
+
+
+(2n $-$ j)
+
+
+
+1
+
+
+
+= (2n $-$ j)
+
+
+
+qj+1
+
+
+
+i,r
+
+
+
+j+1 j
+
+The third equality is because the output of C is independent of r and the fourth equality follows from the fact that for a random permutation of \{0, 1\}n, once j elements are fixed, there are 2n $-$ j equally likely possibilities for uj+1. The lemma follows.
+
+
+
+Lemma 6. For any algorithm A and any fixed S = $\langle$u1, . . . uk$\rangle$ where uis are distinct,
+
+
+
+k$-$1 m
+
+
+
+n$-$m
+
+
+
+Pr [ANDi gets S and accepts] = Pr[A
+
+
+
+accepts] $\times$ Y (2 $-$ j)2
+
+
+
+Proof. The argument is identical to the proof of Lemma 5 except for the probability calculations.
+
+
+
+Pr [ANDi gets S and accepts] = Pr [ANDi gets S] $\times$ Pr [ANDi accepts |ANDi gets S]
+
+
+
+i,r,D
+
+
+
+i,r,D
+
+
+
+i,r,D
+
+
+
+= Pr [ANDi gets S] $\times$ Pr[AS accepts]
+
+
+
+i,r,D r
+
+
+
+The last equality is because AS is independent of i and D. We will show that Pri,r,D[ANDi gets S] =
+
+
+
+Qk$-$1 (2m$-$j)2n$-$m which will prove the lemma.
+
+
+
+k$-$1
+
+
+
+Pr [ANDi gets S] = Pr[ANDi gets uj+1|ANDi gets $\langle$u1, u2, . . . , uj$\rangle$]
+
+
+
+We will reuse the notation Ej for convenience. For any fixed j, let Ej denote the event ``ANDi gets $\langle$u1, u2, . . . , uj$\rangle$'' Then,
+
+
+
+Pr [ANDi gets uj+1|ANDi gets $\langle$u1, u2, . . . , uj$\rangle$] = Pr [ANDi gets uj+1|Ej]
+
+
+
+i,r,D
+
+
+
+i,r,D
+
+= $\Sigma$
+
+
+
+Pr [ANDi asks qj+1|Ej] $\times$ Pr [CNDi (qj+1) = uj+1|Ej]
+
+
+
+qj+1
+
+
+
+= $\Sigma$ Pr [ANDi asks qj+1|Ej] $\times$ Pr[CNDi (qj+1) = uj+1|Ej]
+
+
+
+We will show that for any q, Pr
+
+
+
+[CYi (q) = u
+
+
+
+|E ] = (2m$-$j)2n$-$m .
+
+
+
+i,D
+
+
+
+j+1 j
+
+
+
+(2n$-$j)2
+
+
+
+Pr[CNDi (q) = uj+1|Ej] = Pr[uj+1 $\in$ D|Ej] $\times$ Pr[CNDi (q) = uj+1|uj+1 $\in$ D, Ej]
+
+
+
+i,D
+
+
+
+i,D
+
+
+
+2n$-$j$-$1
+
+
+
+n$-$m
+
+
+
+i,D
+
+
+
+= 2n$-$j 2m$-$j
+
+
+
+2m $-$ j
+
+
+
+2n $-$ j
+
+
+
+2n$-$m
+
+
+
+= 2n $-$ j $\times$ 2n $-$ j
+
+
+
+(2m $-$ j)2n$-$m
+
+
+
+= (2n $-$ j)2
+
+
+
+The second equality is because of the following reasoning. There are 2n$-$j choices of D where u . . . uj
+
+
+
+are included, and 2n$-$j$-$1 that include uj+1 as well. Given that u1, . . . uj+1 $\in$ D, the probability that
+
+
+
+n$-$m
+
+
+
+CNDi (qj+1) = uj+1 is 2 (since there are 2n$-$m copies of uj+1 remaining, and 2n$-$j total things remaining).
+
+
+
+We need the following claim.
+
+
+
+Claim. For any polynomial k = k(n) and any constant c > 1, for large enough n,
+
+
+
+k$-$1 n
+
+
+
+2 $-$ j < c
+
+
+
+2n $-$ 2n/2j
+
+
+
+j=0
+
+
+
+Proof.
+
+
+
+k$-$1 n k$-$1 n
+
+
+
+Y 2 $-$ j $\leq$ Y 2
+
+
+
+j=0
+
+
+
+2n $-$ 2n/2j
+
+
+
+j=0 k$-$1
+
+
+
+2n $-$ 2n/2j
+
+
+
+n/2
+
+
+
+= 2
+
+
+
+2n/2 $-$ j
+
+
+
+j=0
+
+
+
+2n/2 k
+
+
+
+$\leq$ 2n/2 $-$ k
+
+
+
+k k
+
+
+
+= 1 + 2n/2 $-$ k
+
+
+
+For any polynomial k = k(n), limn$\rightarrow$$\infty$(1 + k(n) )k(n) = 1. Hence the claim.
+
+
+
+We can now prove Lemma 4.
+
+
+
+Proof (Proof of Lemma 4).
+
+
+
+From lemmas 5 and 6, we have
+
+
+
+Pri,r[AYi accepts CYi ]
+
+
+
+$\Sigma$S Pri,r[AYi gets S and accepts ]
+
+= $\Sigma$
+
+
+
+Pri,r,D[ANDi accepts CND ] Pri,r,D[ANDi gets S and accepts ]
+
+
+
+$\Sigma$ Pri,r[AYi gets S and accepts ]
+
+
+
+$\leq$ S distinct
+
+
+
+S d$\Sigma$istinct Pri,r,D[ANDi gets S and accepts ]
+
+
+
+$\Sigma$ Pr [A accepts] $\times$ Qk$-$1 1
+
+
+
+$\Sigma$ Pr [A accepts] $\times$ Qk$-$1 (2m$-$j)2n$-$m
+
+
+
+k$-$1 n
+
+
+
+= 2 $-$ j ( substituting m = n/2 ) 2n $-$ 2n/2j
+
+
+
+j=0
+
+
+
+< c (by Claim 4.1)
+
+
+
+The second equality follows because when the oracle is Yi, S is always disjoint (as we never ask the same query twice) and when the oracle is NDi we assume that the algorithm rejects when S is not distinct.
+
+
+
+(Completing the proof of Theorem 6): We will construct an oracle so that conditions of Lemma 3 are met. By a probabilistic argument, there exists an i$*$ and D$*$ such that
+
+
+
+Pr[AYi$*$ accepts CYi$*$ ]
+
+
+
+ND$*$
+
+
+
+ND$*$
+
+
+
+] < c
+
+
+
+Pr[A i$*$ accepts C i$*$
+
+
+
+for every c > 1 (by Lemma 4). Now define An as Yi$*$ and Bn as ND$*$ . This looks very close to the conditions of Lemma 3 except that we restricted the oracles to be An and Bn, However, for Lemma 3, we require that oracles are of the form ($\cup$n$-$1Di $\cup$ An) and ($\cup$n$-$1Di $\cup$ Bn). To establish this, we resort to the standard techniques
+
+
+
+i=1 i=1
+
+
+
+used in oracle constructions. Observe that the sets An and Bn can be constructed in double exponential
+
+
+
+nj$-$1
+
+
+
+time. Let n1 = 2 and nj = 22 . We will satisfy the conditions of Lemma 3 at lengths of the form n . For
+
+
+
+nj$-$1
+
+
+
+$\cup$nj$-$1 D $\cup$A
+
+
+
+every i that is not of the form n , we set both A and B to empty. Now M $\cup$i=1 Di$\cup$Anj (C i=1 i nj ) can
+
+
+
+j i i nj
+
+
+
+be simulated using MAnj (CAnj ). As for queries whose length does not equal c · nj, the machine can find answers to oracle queries without actually making the query.
+
+
+
+Oracle Separation of PZK from CoSBP
+
+In this section we construct an oracle that separates PZK from CoSBP, thus proving Theorem 3. For this we exhibit an oracle where the promise problem Disjoint-Or-Identical is not in SBP. This problem is a generalization of graph non-isomorphism (GNI) problem, in the sense that GNI reduces to this problem. Let G1 and G2 be two graphs, and let Ci be the distribution obtained by randomly picking a permutation $\pi$ and outputting $\pi$(Gi). Observe that if G1 and G2 are not isomorphic then the supports of C1 and C2 are disjoint, and if G1 is isomorphic to G2, then C1 = C2. Moreover the distributions C1 and C2 can be sampled by polynomial-size circuits. The PZK protocol for graph isomorphism can be adapted to show that Disjoint-Or-Identical is in CoPZK.
+
+
+
+Theorem 7. Disjoint-Or-Identical is in CoPZK Theorem 3 follows from the following theorem.
+
+
+
+Theorem 8. There exists an oracle O relative to which Disjoint-or-Identical is not in SBPO
+
+
+
+Input presentation: In the definition of Disjoint-Or-Identical, the input instances are tuples consisting of two circuits. However, we will represent them as just one circuit C in the following manner. Given a circuit C, let C0 denote the circuit obtained by fixing the first input bit of C to be 0, and the circuit C1 denote the circuit obtained by fixing the first input bit of C to be 1. An input to Disjoint-Or-Identical will be a circuit C and the goal is to distinguish between the cases ``the support of distributions C0 and C1 are disjoint'' or ``C0 and C1 are identical distributions''.
+
+
+
+The proof structure of this result is similar to that of Theorem 6 and as in that case, the goal is to construct a circuit family Cn and families of sets An and Bn that satisfy the conditions of Lemma 3.
+
+
+
+Definition 6 (Oracle families). Let i $\in$ \{1 . . . 2n \} index the partitions of \{0, 1\}n into two sets S0 and
+
+
+
+i i i
+
+
+
+Oracles for Yes instances: Yijk is an oracle for the set \{$\langle$0, l, m$\rangle$ : the lth bit of the mth string in the jth
+
+permutation of S0 = 1\} $\cup$ \{$\langle$1, l, m$\rangle$ : the lth bit of the mth string in the kth permutation of S1 = 1\}.
+
+
+
+i i
+
+
+
+Oracles for No instances: We construct the No instances similarly, except both 0 and 1 cases query S0. That is, Nijk is an oracle for the set \{$\langle$0, l, m$\rangle$ : the lth bit of the mth string in the jth permutation of
+
+
+
+S0 = 1\} $\cup$ \{$\langle$1, l, m$\rangle$ : the lth bit of the mth string in the kth permutation of S0 = 1\}
+
+
+
+i i
+
+
+
+An oracle of the above form will be denoted by O which is a disjoint union of sets denoted by O0 and
+
+
+
+O1. Now we define the input circuits that sample the two distributions.
+
+
+
+Definition 7 (Oracle circuits). Let CO be a fixed linear-size oracle circuit, with n+1 inputs and n outputs, defined as follows: on input $\langle$0, j$\rangle$ where j $\in$ \{1 . . . 2n\}, CO(j) outputs O0($\langle$l, j$\rangle$) for all l between 1 and n, and on input $\langle$1, j$\rangle$ where j $\in$ \{1 . . . 2n\}, CO(j) outputs O1($\langle$l, j$\rangle$) for all l between 1 and n. In other words, CO($\langle$0, j$\rangle$) outputs the jth string of O0 and CO($\langle$1, j$\rangle$) outputs the jth string of O1.
+
+
+
+We will establish the following lemma. Then the proof of Theorem 8 follows by arguments identical to that of the previous oracle construction.
+
+
+
+Lemma 7. If i, j, k are uniformly and independently chosen from \{1 . . . 2n \}, \{1 . . . 2n$-$1!\}, \{1 . . . 2n$-$1!\} respectively, then for any probabilistic polynomial-time algorithm A, for any constant c > 1, for large enough n,
+
+
+
+Pri,j,k,r[AYijk accepts CYijk ]
+
+
+
+$\leq$ c
+
+
+
+Pri,j,k,r[ANi,j,k accepts CNi,j,k ]
+
+We use the same notation and make the most of same simplifications from the previous construction, with the following differences. The first difference is: let h be the (polynomial) maximum number of queries made by an algorithm A for any random choice of i, j, k, r. We will allow A to make 2h queries, two at a time, with the restriction that one must begin with 0 and the other must begin with 1. Notationally, p1 . . . ph are the queries that begin with 0 and ui is the result of query pi. q1 . . . qh are the queries that begin with 1 and vi is the result of query qi. S is the ordered multiset $\langle$u1, v1, . . . uh, vh$\rangle$. Notice that this is without loss of generality as A can simulate the original algorithm by ignoring either qi or pi as appropriate. The second difference is that, instead of assuming A rejects if any ui matches any uj, we assume A rejects if any ui matches any vj.
+
+
+
+Lemma 8. For any probabilistic algorithm A and for any fixed S = $\langle$u1, v1, . . . uh, vh$\rangle$ where all elements of
+
+
+
+S are distinct,
+
+
+
+Pr [AYijk gets S and accepts ] = Pr[A
+
+
+
+accepts] $\times$ Y 1
+
+
+
+Proof. Note that
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+[AYijk gets S and accepts ] = Pr
+
+
+
+i,j,k,r
+
+
+
+[AYijk gets S] $\times$ Pr
+
+
+
+i,j,k,r
+
+
+
+[AYijk accepts | AYijk gets S]
+
+
+
+= Pr [AYijk gets S] $\times$ Pr[AYijk accepts]
+
+
+
+i,j,k,r r S
+
+
+
+Thus we need to prove that
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+h$-$1
+
+
+
+[AYijk gets S] =
+
+
+
+(2n $-$ 2l)(2n $-$ 2l $-$ 1)
+
+
+
+A=0
+
+
+
+We use EA to denote the event AYijk gets $\langle$u1, v1, · · · uA, vA$\rangle$. Note that
+
+
+
+and
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+h$-$1
+
+
+
+[AYijk gets S] =
+
+
+
+A=0
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+[AYijk gets uA+1, vA+1 | EA]
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+[AYijk gets uA+1, vA+1 | EA] =
+
+
+
+p,q
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+[AYijk asks pA+1 and qA+1|EA]
+
+
+
+$\times$ Pr
+
+
+
+i,j,k,r
+
+
+
+[CYijk (p) = uA+1 and CYijk (q) = vA+1 | AYijk asks pA+1 and qA+1, EA]
+
+
+
+Pr[A gets uA+1, vA+1|A asks pA+1, qA+1|EA]
+
+
+
+= Pr[uA+1 $\in$ S0, vA+1 $\in$ S1|EA]
+
+
+
+i i i
+
+
+
+$\times$ Pr[uA+1 is the pth element of S0|EA]
+
+
+
+A+1 i
+
+
+
+$\times$ Pr[vA+1 is the qth element of Sh+1|EA]
+
+
+
+A+1 i
+
+
+
+2n $-$ 2l $-$ 2 , 2n $-$ 2l 1 1
+
+
+
+= 2n$-$1 $-$ l $-$ 1
+
+
+
+1
+
+
+
+2n$-$1 $-$ l
+
+
+
+2n$-$1 $-$ l 2n$-$1 $-$ l
+
+
+
+= (2n $-$ 2l)(2n $-$ 2l $-$ 1)
+
+
+
+Thus
+
+
+
+Pr
+
+i,j,k,r
+
+
+
+[AYijk gets uA+1, vA+1 | EA] =
+
+
+
+p,q
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+[AYijk asks pA+1 and qA+1|EA]
+
+
+
+$\times$ Pr
+
+
+
+i,j,k,r
+
+
+
+[CYijk (p) = uA+1 and CYijk (q) = vA+1 | AYijk asks pA+1 and qA+1, EA]
+
+
+
+= 1 (2n $-$ 2l)(2n $-$ 2l $-$ 1)
+
+
+
+p,q
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+[AYijk asks p
+
+
+
+A+1
+
+
+
+and q
+
+
+
+A+1
+
+
+
+|EA]
+
+
+
+1
+
+
+
+= (2n $-$ 2l)(2n $-$ 2l $-$ 1)
+
+
+
+Since Pri,j,k,r[AYijk gets S] = Qh$-$1 Pri,j,k,r[AYijk gets uA+1, vA+1 | EA], using this with the above derived
+
+
+
+equality we obtain that
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+h$-$1
+
+
+
+[AYijk gets S] =
+
+
+
+(2n $-$ 2l)(2n $-$ 2l $-$ 1)
+
+
+
+A=0
+
+
+
+This completes the proof of the lemma. Now we turn to the No instances.
+
+
+
+Lemma 9. For any algorithm A, for any fixed S = \{u1, v1, . . . uh, vh\} that are all distinct,
+
+
+
+h$-$1 n n
+
+
+
+Pr [ANijk gets S and accepts] = Pr[A
+
+
+
+accepts ] $\times$ Y (2 $-$ 2l)(2 $-$ 2l $-$ 1) 1
+
+
+
+i,j,k,r
+
+
+
+Proof. As before,
+
+
+
+r S
+
+
+
+A=0
+
+
+
+(2n$-$1 $-$ 2l)(2n$-$1 $-$ 2l $-$ 1) (2n$-$1 $-$ l)2
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+[ANijk gets S and accepts ] = Pr
+
+
+
+i,j,k,r
+
+
+
+[ANijk gets S] $\times$ Pr
+
+
+
+i,j,k,r
+
+
+
+[ANijk accepts | ANijk gets S]
+
+
+
+= Pr [ANijk gets S] $\times$ Pr[ANijk accepts]
+
+
+
+It suffices to show that
+
+
+
+i,j,k,r r S
+
+
+
+h$-$1 n n
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+[ANijk gets S] = (2 $-$ 2l)(2 $-$ 2l $-$ 1) 1
+
+
+
+(2n$-$1 $-$ 2l)(2n$-$1 $-$ 2l $-$ 1) (2n$-$1 $-$ l)2
+
+
+
+A=0
+
+
+
+If EA denotes the event ``ANijk gets $\langle$u1, v1, $\langle$, uA, vA$\rangle$'', then
+
+
+
+Now,
+
+
+
+Pr
+
+
+
+i,j,k,r
+
+
+
+h$-$1
+
+
+
+[ANijk gets S] = Pr [ANijk gets uA+1, vA+1 | EA]
+
+
+
+ijkr
+
+
+
+A=0
+
+
+
+Pr [ANijk gets uA+1, vA+1 | EA] = $\Sigma$ Pr [ANijk asks pA+1 and qA+1 | EA]
+
+
+
+$\times$ Pr [CNijk (p) = uA+1 and CNijk (q) = vA+1 | EA, ANijk asks pA+1 and qA+1]
+
+
+
+ijkr
+
+
+
+Consider the event ``CNijk (p) = uA+1 and CNijk (q) = vA+1'', conditioned on EA and ``ANijk asks pA+1 and
+
+
+
+qA+1''. For this event to happen, it must be the case that both uA+1 and vA+1 are in S0, and uA+1 is the pth
+
+
+
+i A+1
+
+
+
+element of S0, and vA+1 is the qth element of S0. The probability that both uA+1 and vA+1 are in S0 given
+
+
+
+i A+1 i i
+
+
+
+that EA and A asks pA+1 and qA+1 is
+
+
+
+2n $-$ 2l $-$ 2
+
+
+
+, 2n $-$ 2l
+
+
+
+2n$-$1 $-$ 2l
+
+
+
+(2n$-$1 $-$ 2l)(2n$-$1 $-$ 2l $-$ 1)
+
+
+
+(2n $-$ 2l)(2n $-$ 2l $-$ 1)
+
+The probability that uA+1 is the pst element given EA is 1/(2n$-$1 $-$ l) and similarly, the probability that
+
+
+
+vA+1 is the qA+1st element given EA is 1/(2n$-$1 $-$ l). Thus
+
+
+
+Pr [AN
+
+
+
+ijkr
+
+
+
+ijk gets uA+1, vA+1 | EA] =
+
+
+
+=
+
+
+
+(2n$-$1 $-$ 2l)(2n$-$1 $-$ 2l $-$ 1) (2n $-$ 2l)(2n $-$ 2l $-$ 1)
+
+
+
+(2n$-$1 $-$ 2l)(2n$-$1 $-$ 2l $-$ 1) (2n $-$ 2l)(2n$-$1 $-$ 2l $-$ 1)
+
+
+
+1 (2n$-$1 $-$ l)2
+
+
+
+1
+
+
+
+(2n $-$ l)2
+
+
+
+$\Sigma$p,q
+
+
+
+Pr [AN
+
+
+
+ijkr
+
+
+
+ijk asks pA+1 and qA+1 | EA]
+
+
+
+Thus
+
+
+
+h$-$1
+
+
+
+n$-$1
+
+
+
+n$-$1
+
+
+
+Pr [ANijk gets S] = Y (2 $-$ 2l)(2 $-$ 2l $-$ 1) 1 ,
+
+
+
+i,j,k,r
+
+
+
+and the lemma follows.
+
+
+
+We need the following claim
+
+
+
+A=0
+
+
+
+(2n $-$ 2l)(2n $-$ 2l $-$ 1)
+
+
+
+(2n$-$1 $-$ l)2
+
+
+
+Claim. For any polynomial h = h(n) and any constant c > 1, for large enough n,
+
+
+
+h$-$1
+
+
+
+n$-$1 2
+
+
+
+(2 $-$ l) < c
+
+
+
+(2n$-$1 $-$ 2l)(2n$-$1 $-$ 2l $-$ 1)
+
+
+
+A=0
+
+
+
+Proof.
+
+
+
+h$-$1
+
+
+
+n$-$1 2
+
+
+
+h$-$1
+
+
+
+n$-$1 2
+
+
+
+Y (2 $-$ l) $\leq$ Y (2 $-$ l)
+
+
+
+A=0 A=0
+
+
+
+h$-$1
+
+
+
+$\leq$
+
+
+
+A=0
+
+
+
+l + 1 2
+
+
+
+1 + 2n$-$1 $-$ 2l $-$ 1)
+
+
+
+For any polynomial h, the above expression tends to 1 for large enough n.
+
+
+
+The rest of the proof of Lemma 7 and that of Theorem 8 is identical to the proofs of Lemma 4 and Theorem 6.
+
+
+
+
+\subsection{Acknowledgements}
+
+
+
+
+We thank the reviewers for their comments and suggestions. In particular, we thank an anonymous reviewer for pointing an alternate proof of Theorem 2 and making us aware of Aaronson's work [1] and also for pointing out Corollary 1.
 
 
 \section*{References}
@@ -269,146 +2021,110 @@ As with all studies, the study reported in this paper has some limitations. Alth
 
 
 
-Benson, P. (2001). Teaching and researching autonomy in language learning. Harlow: Pearson Education.
+Scott Aaronson. Impossibility of succinct quantum proofs for collision-freeness. Quantum Inf. Comput., 12(1- 2):21--28, 2012.
 
 
 
-Benson, P. (2011). What's new in autonomy? The Language Teacher, 35(4), 15-18.
+Scott Aaronson, Baris Aydinlioglu, Harry Buhrman, John M. Hitchcock, and Dieter van Melkebeek. A note on exponential circuit lower bounds from derandomizing arthur-merlin games. Electronic Colloquium on Computa- tional Complexity (ECCC), 17:174, 2010.
 
 
 
-Benson, P. \& Chik, A. (2010). New literacies and autonomy in foreign language learning. In M. J. Luzón, M. N. Ruiz-Madrid \& M. L. Villanueva (Eds.), Digital genres, new literacies, and autonomy in language learning (pp. 63-80). Newcastle-upon-Tyne: Cambridge Scholars Publishing.
+William Aiello and Johan Hastad. Statistical zero-knowledge languages can be recognized in two rounds. Journal of Computer and System Sciences, 42(3):327 -- 345, 1991.
 
 
 
-Byrne, J. \& Diem, R. (2014). Profiling mobile English language learners. The JALT CALL Journal I, 10 (1), 3-19.
+Sanjeev Arora and Boaz Barak. Computational Complexity - A Modern Approach. Cambridge University Press, 2009.
 
 
 
-Cakir, I. (2015). Opinions and attitudes of prospective teachers for the use of mobile phones in foreign language learning. Contemporary Educational Technology, 6(3), 239- 255.
+Baris Aydinlioglu, Dan Gutfreund, John M. Hitchcock, and Akinori Kawachi. Derandomizing arthur-merlin games and approximate counting implies exponential-size lower bounds. Computational Complexity, 20(2):329-- 366, 2011.
 
 
 
-Cavus, N. \& Ibrahim, D. (2009). m-Learning: An experiment in using SMS to support learning new English language words. British Journal of Educational Technology, 40(1), 78-91.
+Manuel Blum, Paul Feldman, and Silvio Micali. Non-interactive zero-knowledge and its applications (extended abstract). In Janos Simon, editor, Proceedings of the 20th Annual ACM Symposium on Theory of Computing, May 2-4, 1988, Chicago, Illinois, USA, pages 103--112. ACM, 1988.
 
 
 
-Dashtestani, R. (2015). Moving bravely towards mobile learning: Iranian students' use of mobile devices for learning English as a foreign language. Computer Assisted Language Learning, 29(4), 815-832.
+Manuel Blum, Alfredo De Santis, Silvio Micali, and Giuseppe Persiano. Noninteractive zero-knowledge. SIAM
 
 
 
-Demouy, V., Jones, A., Kan, Q., Kukulska-Hulme, A. \& Eardley, A. (2016). Why and how do distance learners use mobile devices for language learning? The EuroCALL Review, 24(1), 10-24.
+J. Comput., 20(6):1084--1118, 1991.
 
 
 
-Díaz-Vera, J. (Ed.). (2012). Left to my own devices: Learner autonomy and mobile- assisted language learning. Bingley, UK: Emerald Group.
+Elmar Bo¨hler, Christian Glaßer, and Daniel Meister. Error-bounded probabilistic computations between MA and AM. J. Comput. Syst. Sci., 72(6):1043--1076, 2006.
 
 
 
-Djoub, Z. (2015). Mobile technology and learner autonomy in language learning. In J. Keengwe (Ed.), Promoting active learning through the integration of mobile and ubiquitous technologies (pp. 194-212). Hershey: IGI Global.
+Ravi B. Boppana, Johan H$^\circ$astad, and Stathis Zachos. Does co-np have short interactive proofs? Inf. Process. Lett., 25(2):127--132, 1987.
 
 
 
-Dörnyei, Z. (2007). Research methods in applied linguistics. Oxford: Oxford University Press.
+Adam Bouland, Lijie Chen, Dhiraj Holden, Justin Thaler, and Prashant Nalini Vasudevan. On the power of statistical zero knowledge. In Chris Umans, editor, 58th IEEE Annual Symposium on Foundations of Computer Science, FOCS 2017, Berkeley, CA, USA, October 15-17, 2017, pages 708--719. IEEE Computer Society, 2017.
 
+L. Fortnow. The complexity of perfect zero-knowledge. In Proceedings of the Nineteenth Annual ACM Symposium on Theory of Computing, STOC '87, page 204--209, New York, NY, USA, 1987. Association for Computing Machinery.
 
 
-Holec, H. (1981). Autonomy and foreign language learning. Oxford: Pergamon Press.
 
+Rosario Gennaro, Daniele Micciancio, and Tal Rabin. An efficient non-interactive statistical zero-knowledge proof system for quasi-safe prime products. In Li Gong and Michael K. Reiter, editors, CCS '98, Proceedings of the 5th ACM Conference on Computer and Communications Security, San Francisco, CA, USA, November 3-5, 1998, pages 67--72. ACM, 1998.
 
 
-Jones, A. (2015). Mobile informal language learning: Exploring Welsh learners' practices, eLearning Papers, 45, 4-14.
 
+Oded Goldreich and Shafi Goldwasser. On the limits of nonapproximability of lattice problems. J. Comput. Syst. Sci., 60(3):540--563, 2000.
 
 
-Kukulska-Hulme, A., Norris, L. \& Donohue, J. (2015). Mobile pedagogy for English language teaching: A guide for teachers. British Council, London.
 
+Oded Goldreich, Silvio Micali, and Avi Wigderson. Proofs that yield nothing but their validity for all languages in NP have zero-knowledge proof systems. J. ACM, 38(3):691--729, 1991.
 
 
-Kukulska-Hulme, A. \& Shield, L. (2008). An overview of mobile assisted language learning:  From  content  delivery  to  supported  collaboration  and interaction. ReCALL, 20(3), 271-289.
 
+Oded Goldreich and Dana Ron. On testing expansion in bounded-degree graphs. Electronic Colloquium on Computational Complexity (ECCC), 7(20), 2000.
 
 
-Kukulska-Hulme, A., Traxler, J. \& Pettit, J. (2007). Designed and user-generated activity in the mobile age. Journal of Learning Design, 2(1), 52-65.
 
+Oded Goldreich, Amit Sahai, and Salil P. Vadhan. Can statistical zero knowledge be made non-interactive? or on the relationship of SZK and NISZK. In Advances in Cryptology - CRYPTO '99, 19th Annual International Cryptology Conference, Santa Barbara, California, USA, August 15-19, 1999, Proceedings, volume 1666 of Lecture Notes in Computer Science, pages 467--484. Springer, 1999.
 
 
-Lee, L. (2011). Blogging: Promoting learner autonomy and intercultural competence through study abroad. Language Learning \& Technology, 5, 87-109.
 
+S Goldwasser, S Micali, and C Rackoff. The knowledge complexity of interactive proof-systems. In Proceedings of the Seventeenth Annual ACM Symposium on Theory of Computing, STOC '85, page 291--304, New York, NY, USA, 1985. Association for Computing Machinery.
 
 
-Little, D. (2069). Language learner autonomy and the European Language Portfolio: Two L2 English examples. Language Teaching, 42, 222-233.
 
+Shafi Goldwasser, Silvio Micali, and Charles Rackoff. The knowledge complexity of interactive proof systems.
 
 
-Little, D. (2991). Learner autonomy 1: Definitions, issues and problems. Dublin: Authentik.
 
+SIAM J. Comput., 18(1):186--208, 1989.
 
 
-Littlewood, W. (1926). Autonomy: An anatomy and a framework. System, 24(4), 427- 435.
 
+Greg Kuperberg. How hard is it to approximate the jones polynomial? Theory Comput., 11:183--219, 2015.
 
+Shachar Lovett and Jiapeng Zhang. On the impossibility of entropy reversal, and its application to zero-knowledge proofs. In Yael Kalai and Leonid Reyzin, editors, Theory of Cryptography - 15th International Conference, TCC 2017, Baltimore, MD, USA, November 12-15, 2017, Proceedings, Part I, volume 10677 of Lecture Notes in Computer Science, pages 31--55. Springer, 2017.
 
-Miangah,  T.M.  \&  Nezarat,  A.  (2002).  Mobile-assisted  language learning. International Journal of Distributed and Parallel Systems, 3(1), 309-319.
 
 
+Lior Malka. How to achieve perfect simulation and a complete problem for non-interactive perfect zero-knowledge.
 
-Nah, K.C., White, P. \& Sussex, R. (2008). The potential of using a mobile phone to access  the  internet  for  learning  EFL  listening  skills  within  a  Korean context. ReCALL, 20(3), 331-347.
 
 
+J. Cryptology, 28(3):533--550, 2015.
 
-Oz, H. (2015). An investigation of preservice English teachers' perceptions of mobile assisted language learning. English Language Teaching, 8(2), 22-34.
 
 
+Tatsuaki Okamoto. On relationships between statistical zero-knowledge proofs. J. Comput. Syst. Sci., 60(1):47-- 108, 2000.
 
-Pettit, J. \& Kukulska-Hulme, A. (2007). Going with the grain: Mobile devices in practice. Australasian Journal of Educational Technology, 23(1), 17-33.
 
 
+Chris Peikert and Vinod Vaikuntanathan. Noninteractive statistical zero-knowledge proofs for lattice problems. In David A. Wagner, editor, Advances in Cryptology - CRYPTO 2008, 28th Annual International Cryptology Con- ference, Santa Barbara, CA, USA, August 17-21, 2008. Proceedings, volume 5157 of Lecture Notes in Computer Science, pages 536--553. Springer, 2008.
 
-Reinders, H. (2011). Towards an operationalisation of autonomy. In A. Ahmed, G. Cane \& M. Hanzala. Teaching English in multilingual contexts: Current challenges, future directions (pp. 37-52). Cambridge: Cambridge Scholars Publishing.
 
 
+Amit Sahai and Salil P. Vadhan. A complete problem for statistical zero knowledge. J. ACM, 50(2):196--249, 2003.
 
-Reinders, H. \& White, C. (2016). 20 years of autonomy and technology: How far have we come and where to next? Language Learning \& Technology, 20(2), 143-154. Retrieved from http://llt.msu.edu/issues/june2016/reinderswhite.pdf.
 
 
-
-Reinders, H. \& Cho, M. (2011). Encouraging informal language learning with mobile technology: Does it work? Journal of Second Language Teaching and Research, 1, 3-29.
-
-
-
-Stockwell, G. (2007). Vocabulary on the move: Investigating an intelligent mobile phone-based vocabulary tutor. Computer Assisted Language Learning, 20(4), 365-383.
-
-
-
-Trifanova, A., Knapp, J., Ronchetti, M. \& Gamper, J. (2004). Mobile ELDIT: Challenges in the transitions from an e-learning to an m-learning system. Trento, Italy: University of	Trento.	Retrieved	December 12,	2016, from http://eprints.biblio.unitn.it/archive/00000532/01/paper4911.pdf.
-
-
-
-Zhang, H., Song, W. \& Burston, J. (2011). Reexamining the effectiveness of vocabulary learning via mobile phones. The Turkish Online Journal of Educational Technology, 10(3), 203-214.
-
-
-
-\begin{itemize}
-
-\item It should be noted that the reason for choosing this sample was for convenience since they were accessible to the researcher (Dörnyei, 2007, p. 98-99).
-
-\end{itemize}
-
-
-
-\begin{itemize}
-
-\item It should be noted that in order to ward off potential misunderstandings and to allow the participants to freely elaborate upon their answers, the interviews were conducted in Polish.
-
-\end{itemize}
-
-
-
-\begin{itemize}
-
-\item Both here and throughout the remainder of the paper, the excerpts are translations of the students' responses by the present author.
-
-\end{itemize}
+Thomas Watson. The complexity of estimating min-entropy. Computational Complexity, 25(1):153--175, 2016.
 
 \end{document}

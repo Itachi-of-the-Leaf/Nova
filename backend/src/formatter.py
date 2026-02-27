@@ -26,7 +26,7 @@ def _latex_escape(text: str) -> str:
     for char, escaped in replacements:
         text = text.replace(char, escaped)
     
-    # Pre-Compilation Unicode Sanitizer
+    # Pre-Compilation Unicode Sanitizer - Comprehensive Dictionary
     unicode_map = {
         '⊆': r'$\subseteq$', '∈': r'$\in$', '∉': r'$\notin$',
         'α': r'$\alpha$', 'β': r'$\beta$', 'γ': r'$\gamma$',
@@ -45,20 +45,30 @@ def _latex_escape(text: str) -> str:
         'Π': r'$\Pi$', 'ϵ': r'$\epsilon$', 'є': r'$\in$', '−': r'$-$',
         '∅': r'$\emptyset$', '∗': r'$*$', '∩': r'$\cap$', '∪': r'$\cup$',
         '∼': r'$\sim$', '⟨': r'$\langle$', '⟩': r'$\rangle$',
+        '∀': r'$\forall$', '∃': r'$\exists$', '∄': r'$\nexists$',
+        '∇': r'$\nabla$', '∂': r'$\partial$', '∝': r'$\propto$',
+        '∠': r'$\angle$', '∧': r'$\wedge$', '∨': r'$\vee$',
+        '⇒': r'$\Rightarrow$', '⇔': r'$\Leftrightarrow$',
+        '∫': r'$\int$', '∬': r'$\iint$', '∮': r'$\oint$',
+        '∴': r'$\therefore$', '∵': r'$\because$',
+        '≅': r'$\cong$', '≡': r'$\equiv$', '∝': r'$\propto$',
+        '⊕': r'$\oplus$', '⊗': r'$\otimes$', '⊥': r'$\bot$',
+        '‖': r'$\|$', '⊂': r'$\subset$', '⊃': r'$\supset$',
+        '⊇': r'$\supseteq$', '⊄': r'$\not\subset$', '⊅': r'$\not\supset$',
+        '⊤': r'$\top$', 'vdash': r'$\vdash$', 'models': r'$\models$',
     }
+    
+    # Systemic sweep for known symbols
     for char, latex_cmd in unicode_map.items():
         text = text.replace(char, latex_cmd)
         
-    # Phase 4: Mathematical Symbol Formatting
-    # Wrap specific math functions and variables like IINo, sup(D)
-    # 1. Known math blocks
-    text = re.sub(r'\b(IINo|sup\([A-Za-z0-9]+\))\b', r'$\1$', text)
-    
     # Regex to sweep and safely strip any remaining unmapped symbols to prevent pdflatex crash
     # Keeps ASCII (\x00-\x7F) and basic Latin-1 Supplement (\x80-\xFF) for accents
+    # Any other character (e.g. random emoji or unmapped cyrillic) will be stripped seamlessly!
     text = re.sub(r'[^\x00-\xFF]+', '', text)
         
     return text
+
 
 def _convert_headings(text: str) -> str:
     """
@@ -80,10 +90,7 @@ def _convert_headings(text: str) -> str:
             
         # Determine max columns
         max_cols = max((len(r.find_all(['td', 'th'])) for r in rows), default=1)
-        
-        # Use paragraph blocks with proportional widths to force wrapping
-        col_width = f"{0.95 / max_cols:.3f}\\textwidth"
-        col_format = "|" + "|".join([f"p{{{col_width}}}"] * max_cols) + "|"
+        col_format = "l" * max_cols
         
         latex_str = "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{" + col_format + "}\n\\hline\n"
         
@@ -93,9 +100,9 @@ def _convert_headings(text: str) -> str:
             escaped_cells = [_latex_escape(cell.get_text(strip=True)) for cell in cells]
             # Pad if row has fewer cells
             padded_cells = escaped_cells + [""] * (max_cols - len(escaped_cells))
-            latex_str += " & ".join(padded_cells) + " \\\\\n\\hline\n"
+            latex_str += " & ".join(padded_cells) + " \\\\\n"
             
-        latex_str += "\\end{tabular}\n\\end{table}\n"
+        latex_str += "\\hline\n\\end{tabular}\n\\end{table}\n"
         return latex_str
 
     # Process block by block
@@ -234,8 +241,6 @@ def generate_pdf(metadata, body_text):
         # Instead, we look for 'Introduction' or the first LLM-extracted heading.
         cut_index = -1
         intro_match = re.search(r'@@H[123]@@(I\.?\s*)?Introduction@@END@@', tagged_body, re.IGNORECASE)
-        table_match = tagged_body.find('[TABLE_START]')
-        
         if intro_match:
             cut_index = intro_match.start()
         else:
@@ -250,15 +255,6 @@ def generate_pdf(metadata, body_text):
             else:
                 # Last resort: just cut at the first marker
                 cut_index = tagged_body.find('@@H')
-                
-        # CRITICAL FIX: Ensure we never drop a Table that occurs before the first heading
-        if table_match != -1 and (cut_index == -1 or table_match < cut_index):
-            # However, ONLY prioritize the table if it's AFTER the abstract to prevent grabbing metadata tables
-            if abstract_text and abstract_text in tagged_body:
-                if table_match > tagged_body.find(abstract_text):
-                    cut_index = table_match
-            else:
-                cut_index = table_match
 
         if cut_index > 0:
             tagged_body = tagged_body[cut_index:]
@@ -271,6 +267,27 @@ def generate_pdf(metadata, body_text):
             tagged_body,
             flags=re.IGNORECASE
         )
+
+        # --------- NEW EXPLICIT REFERENCE BLOCK INJECTION ---------
+        # Strip out anything after @@H1@@References@@END@@ or similar 
+        # Because we want to rebuild it purely from metadata['references']
+        ref_match = re.search(r'@@H1@@\s*References\s*@@END@@', tagged_body, re.IGNORECASE)
+        if ref_match:
+            tagged_body = tagged_body[:ref_match.start()]
+        else:
+            ref_match_2 = re.search(r'(?i)\nreferences\s*\n', tagged_body)
+            if ref_match_2:
+                tagged_body = tagged_body[:ref_match_2.start()]
+
+        refs = metadata.get('references', [])
+        if refs and isinstance(refs, list):
+            tagged_body += "\n\n@@H1@@References@@END@@\n"
+            for r in refs:
+                tagged_body += f"@@LIST_ITEM@@{r}@@END@@\n"
+        elif refs and isinstance(refs, str):
+            tagged_body += "\n\n@@H1@@References@@END@@\n"
+            tagged_body += f"{refs}\n"
+        # -----------------------------------------------------------
 
         tex_content = tex_content.replace("[[BODY]]", _convert_headings(tagged_body))
 

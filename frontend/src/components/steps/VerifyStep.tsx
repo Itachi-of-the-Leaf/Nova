@@ -4,7 +4,7 @@ import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { motion } from 'framer-motion'; // Usually framer-motion in Vite/React
 
 export function VerifyStep({ state, updateState, onNext }: { state: AppState, updateState: (s: Partial<AppState>) => void, onNext: () => void }) {
-  const handleMetadataChange = (field: keyof AppState['metadata'], value: string) => {
+  const handleMetadataChange = (field: keyof AppState['metadata'], value: string | string[]) => {
     updateState({
       metadata: {
         ...state.metadata,
@@ -21,7 +21,7 @@ export function VerifyStep({ state, updateState, onNext }: { state: AppState, up
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[2.2fr_1.2fr] gap-8 h-[calc(100vh-140px)] overflow-hidden">
       {/* Left Column: Raw Text Feed */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"
@@ -46,7 +46,7 @@ export function VerifyStep({ state, updateState, onNext }: { state: AppState, up
       </motion.div>
 
       {/* Right Column: Glass Box Human-in-the-Loop */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         className="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar"
@@ -58,7 +58,7 @@ export function VerifyStep({ state, updateState, onNext }: { state: AppState, up
             <span className={`${confidenceColor} font-black text-xl`}>{confidence}%</span>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
-            <motion.div 
+            <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${confidence}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
@@ -66,7 +66,7 @@ export function VerifyStep({ state, updateState, onNext }: { state: AppState, up
             />
           </div>
           <p className="text-xs text-slate-500 flex items-start gap-2 leading-relaxed">
-            {confidence > 80 ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />} 
+            {confidence > 80 ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />}
             {confidence > 80 ? "Structural parsing complete. High confidence in entity extraction. Please verify the tags below for absolute precision." : "AI confidence is lower than optimal. Please carefully review the extracted tags below."}
           </p>
         </div>
@@ -77,17 +77,22 @@ export function VerifyStep({ state, updateState, onNext }: { state: AppState, up
             Tag Review
             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">EDITABLE</span>
           </h3>
-          
+
           <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
             <Field label="Title" value={state.metadata.title} onChange={(v) => handleMetadataChange('title', v)} rows={2} />
             <Field label="Authors" value={state.metadata.authors} onChange={(v) => handleMetadataChange('authors', v)} rows={1} />
             <Field label="Abstract" value={state.metadata.abstract} onChange={(v) => handleMetadataChange('abstract', v)} rows={5} />
             <Field label="Headings" value={state.metadata.headings} onChange={(v) => handleMetadataChange('headings', v)} rows={4} />
-            <Field label="References" value={state.metadata.references} onChange={(v) => handleMetadataChange('references', v)} rows={4} />
+            <Field
+              label="References"
+              value={Array.isArray(state.metadata.references) ? state.metadata.references.join('\n\n') : state.metadata.references}
+              onChange={(v) => handleMetadataChange('references', v.split('\n\n').filter(s => s.trim().length > 0))}
+              rows={4}
+            />
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-100">
-            <button 
+            <button
               onClick={onNext}
               className="w-full bg-[#ffc107] hover:bg-amber-500 text-slate-900 font-black py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-amber-100 active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-sm"
             >

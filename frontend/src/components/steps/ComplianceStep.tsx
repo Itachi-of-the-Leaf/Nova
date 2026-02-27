@@ -100,13 +100,24 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
 
     // If accept is chosen, aggressively replace the original string block in the references text
     if (choice === 'accept' && currentMismatch.suggestion) {
-      const newRefs = state.metadata.references.replace(
-        currentMismatch.original,
-        currentMismatch.suggestion
-      );
-      updateState({
-        metadata: { ...state.metadata, references: newRefs }
-      });
+      if (Array.isArray(state.metadata.references)) {
+        console.log("Replacing in array:", currentMismatch.original, "=>", currentMismatch.suggestion);
+        const newRefs = state.metadata.references.map((r: string) =>
+          r === currentMismatch.original ? currentMismatch.suggestion : r
+        );
+        updateState({
+          metadata: { ...state.metadata, references: newRefs }
+        });
+      } else {
+        console.log("Replacing in string:", currentMismatch.original, "=>", currentMismatch.suggestion);
+        const newRefs = state.metadata.references.replace(
+          currentMismatch.original,
+          currentMismatch.suggestion
+        );
+        updateState({
+          metadata: { ...state.metadata, references: newRefs }
+        });
+      }
     }
 
     if (resolvingIndex + 1 < crossrefResults.length) {
@@ -227,11 +238,10 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
                 </div>
               </div>
 
-              {/* References Block */}
               <div className="pt-10 space-y-4 border-t-2 border-slate-100">
                 <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">References</h2>
                 <pre className="text-xs text-slate-600 whitespace-pre-wrap font-mono bg-slate-900 text-slate-300 p-6 rounded-xl overflow-x-auto">
-                  {state.metadata.references}
+                  {Array.isArray(state.metadata.references) ? state.metadata.references.join('\n\n') : state.metadata.references}
                 </pre>
               </div>
             </div>

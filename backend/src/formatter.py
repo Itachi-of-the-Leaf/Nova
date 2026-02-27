@@ -25,6 +25,34 @@ def _latex_escape(text: str) -> str:
     ]
     for char, escaped in replacements:
         text = text.replace(char, escaped)
+    
+    # Pre-Compilation Unicode Sanitizer
+    unicode_map = {
+        '⊆': r'$\subseteq$', '∈': r'$\in$', '∉': r'$\notin$',
+        'α': r'$\alpha$', 'β': r'$\beta$', 'γ': r'$\gamma$',
+        'Δ': r'$\Delta$', 'δ': r'$\delta$', 'ε': r'$\varepsilon$',
+        'θ': r'$\theta$', 'λ': r'$\lambda$', 'μ': r'$\mu$',
+        'π': r'$\pi$', 'σ': r'$\sigma$', 'Σ': r'$\Sigma$',
+        'Φ': r'$\Phi$', 'Ω': r'$\Omega$', '±': r'$\pm$',
+        '×': r'$\times$', '÷': r'$\div$', '≈': r'$\approx$',
+        '≠': r'$\neq$', '≤': r'$\leq$', '≥': r'$\geq$',
+        '∞': r'$\infty$', '°': r'$^\circ$', '˚': r'$^\circ$',
+        '→': r'$\rightarrow$', '←': r'$\leftarrow$', '↔': r'$\leftrightarrow$',
+        '⇒': r'$\Rightarrow$', '⇐': r'$\Leftarrow$', '⇔': r'$\Leftrightarrow$',
+        '™': r'\texttrademark{}', '©': r'\copyright{}', '®': r'\textregistered{}',
+        '–': '--', '—': '---', '…': r'\dots{}',
+        '“': '``', '”': "''", '‘': '`', '’': "'",
+        'Π': r'$\Pi$', 'ϵ': r'$\epsilon$', 'є': r'$\in$', '−': r'$-$',
+        '∅': r'$\emptyset$', '∗': r'$*$', '∩': r'$\cap$', '∪': r'$\cup$',
+        '∼': r'$\sim$', '⟨': r'$\langle$', '⟩': r'$\rangle$',
+    }
+    for char, latex_cmd in unicode_map.items():
+        text = text.replace(char, latex_cmd)
+        
+    # Regex to sweep and safely strip any remaining unmapped symbols to prevent pdflatex crash
+    # Keeps ASCII (\x00-\x7F) and basic Latin-1 Supplement (\x80-\xFF) for accents
+    text = re.sub(r'[^\x00-\xFF]+', '', text)
+        
     return text
 
 

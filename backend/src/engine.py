@@ -32,8 +32,7 @@ def extract_text_from_docx(file_path):
             strategy="hi_res",
             hi_res_model_name="yolox",
             infer_table_structure=True,
-            pdf_infer_table_structure=True,
-            chunking_strategy="by_title"
+            skip_infer_table_types=["pdf"]
         )
         
         extracted_blocks = []
@@ -164,11 +163,12 @@ def get_document_metadata(text_content):
         if metadata["title"] and metadata["abstract"] and len(metadata["abstract"]) > 50:
             break
 
-        prompt_head = f"""You are a rigid Data Extractor. Extract the Title, Authors, and Abstract from the text below.
+        prompt_head = f"""You are a strict, literal Data Extractor. Extract the exact Title, Authors, and Abstract from the text below.
 CRITICAL INSTRUCTIONS:
-1. For Authors, extract FULL HUMAN NAMES cleanly (no emails, numbers, or affiliations).
-2. If a field is not found in this specific text chunk, return an empty string "".
-3. Copy the Abstract EXACTLY character-for-character.
+1. ONLY extract information that is explicitly and visibly present in the text chunk. DO NOT hallucinate, guess, or infer missing information.
+2. For Authors, extract ONLY the literal Full Human Names strictly from the text provided. Do not guess non-existent authors. Return an empty string if no authors are explicitly listed.
+3. If a field is not found in the text chunk, return an empty string "".
+4. Copy the Title and Abstract EXACTLY character-for-character as they appear in the text.
 
 Return ONLY valid JSON:
 {{
@@ -210,8 +210,8 @@ TEXT:
         ref_match = re.search(r'(?i)^\s*references\b[\s:]*(.*)', text_content, re.MULTILINE | re.DOTALL)
         if ref_match:
             raw_refs = ref_match.group(1).strip()
-            # RUN THE TRUTH ENGINE
-            metadata["references"] = verify_references_block(raw_refs)
+            # Do NOT run truth engine here. The Verify Structure step just shows the raw text.
+            metadata["references"] = raw_refs
         else:
             metadata["references"] = "No references section found."
     except Exception as e:

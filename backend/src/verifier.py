@@ -55,14 +55,33 @@ def verify_single_citation(citation):
                     if doi and doi != "No DOI":
                         constructed += f" https://doi.org/{doi}"
                     
-                    return f"✅ [VERIFIED | DOI: {doi}]\n{constructed}"
+                    return {
+                        "original": clean_citation,
+                        "status": "mismatch" if clean_citation != constructed else "verified",
+                        "suggestion": constructed,
+                        "score": score,
+                        "doi": doi
+                    }
                 else:
-                    return f"⚠️ [LOW CONFIDENCE | Possible Hallucination]\n{clean_citation}"
+                    return {
+                        "original": clean_citation,
+                        "status": "low_confidence",
+                        "suggestion": None,
+                        "score": score
+                    }
             else:
-                return f"❌ [NOT FOUND IN CROSSREF]\n{clean_citation}"
+                return {
+                    "original": clean_citation,
+                    "status": "not_found",
+                    "suggestion": None
+                }
                 
     except Exception as e:
-        return f"❓ [API TIMEOUT / ERROR]\n{clean_citation}"
+        return {
+            "original": clean_citation,
+            "status": "error",
+            "suggestion": None
+        }
 
 def verify_references_block(references_text):
     """Refined splitter for APA/MLA (Name-Year) and Numbered lists."""
@@ -80,4 +99,5 @@ def verify_references_block(references_text):
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         results = list(executor.map(verify_single_citation, citations))
     
-    return "\n\n".join(results)
+    # Do not join to a string! Return the list of Dicts for the REST endpoint.
+    return results

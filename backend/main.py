@@ -136,6 +136,27 @@ async def fix_abstract(request: AbstractRequest):
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 
+class CrossrefRequest(BaseModel):
+    references: str
+
+@app.post("/verify-crossref")
+async def verify_crossref(request: CrossrefRequest):
+    """Hits the Crossref API to verify the list of citations during the Compliance Check step, returning suggestions."""
+    try:
+        from src.verifier import verify_references_block
+        # Run blocking network call in a thread
+        results = await asyncio.to_thread(verify_references_block, request.references)
+        
+        # Check if the result is just a string message (like "No references found")
+        if isinstance(results, str):
+            return {"results": [], "message": results}
+            
+        return {"results": results}
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+
 @app.post("/download/pdf")
 async def download_pdf(req: GenerateRequest):
     try:

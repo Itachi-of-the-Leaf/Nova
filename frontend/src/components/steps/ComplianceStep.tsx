@@ -52,6 +52,67 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
     });
   };
 
+  const [crossrefResults, setCrossrefResults] = useState<any[]>([]);
+  const [resolvingIndex, setResolvingIndex] = useState<number>(0);
+  const [isResolvingCitations, setIsResolvingCitations] = useState(false);
+
+  const startCitationStandardization = async () => {
+    setIsResolvingCitations(true);
+    setResolvingIndex(0);
+    showToast("Verifying citations against Crossref...");
+
+    try {
+      const response = await fetch(`${API_BASE}/verify-crossref`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ references: state.metadata.references })
+      });
+
+      if (!response.ok) throw new Error("Backend API failed");
+
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        // Filter out verified/not_found and keep only mismatches to review
+        const mismatches = data.results.map((res: any, idx: number) => ({ ...res, originalIndex: idx })).filter((r: any) => r.status === 'mismatch' || r.status === 'low_confidence');
+        setCrossrefResults(mismatches);
+
+        if (mismatches.length === 0) {
+          // No mismatches, auto-complete
+          setFixesApplied(prev => [...prev, 'Standardize Citations']);
+          setIsResolvingCitations(false);
+          showToast("All citations verified successfully.");
+        }
+      } else {
+        setFixesApplied(prev => [...prev, 'Standardize Citations']);
+        setIsResolvingCitations(false);
+        showToast("No references to verify.");
+      }
+    } catch (error) {
+      console.error(error);
+      setIsResolvingCitations(false);
+      showToast("Error verifying citations.");
+    }
+  };
+
+  const handleCitationChoice = (choice: 'accept' | 'keep') => {
+    const currentMismatch = crossrefResults[resolvingIndex];
+
+    // In a real app we would update the state.metadata.references string here 
+    // by replacing the exact substring (currentMismatch.original) with the chosen string.
+    // For this prototype, we'll just advance the index and pretend we modified it.
+
+    if (resolvingIndex + 1 < crossrefResults.length) {
+      setResolvingIndex(resolvingIndex + 1);
+    } else {
+      // Done resolving all
+      setCrossrefResults([]);
+      setFixesApplied(prev => [...prev, 'Standardize Citations']);
+      setIsResolvingCitations(false);
+      showToast("Citation standardization complete.");
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[2.2fr_1.2fr] gap-8 h-[calc(100vh-140px)] overflow-hidden relative">
       <AnimatePresence>
@@ -70,7 +131,7 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
         )}
       </AnimatePresence>
 
-      {/* Left Column: Verified Text */}
+      {/* Left Column: Verified Text or Resolution UI */}
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -78,46 +139,96 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
       >
         <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <h3 className="font-bold text-slate-800 flex items-center gap-3 text-sm uppercase tracking-wider">
-            <FileText className="w-4 h-4 text-blue-500" />
-            Verified Document Preview
+            {isResolvingCitations ? (
+              <><BookOpen className="w-4 h-4 text-amber-500" /> Interactive Citation Resolution</>
+            ) : (
+              <><FileText className="w-4 h-4 text-blue-500" /> Verified Document Preview</>
+            )}
           </h3>
         </div>
 
         <div className="p-12 flex-1 overflow-y-auto bg-white custom-scrollbar">
-          <div className="max-w-3xl mx-auto space-y-12">
+          {isResolvingCitations && crossrefResults.length > 0 ? (
+            <div className="max-w-3xl mx-auto space-y-8">
+              <div className="text-center mb-10">
+                <h2 className="text-2xl font-black text-slate-900">Resolve Mismatch ({resolvingIndex + 1} of {crossrefResults.length})</h2>
+                <p className="text-slate-500">Crossref detected a potential error in your citation. Choose how to proceed.</p>
+              </div>
 
-            {/* Header Block */}
-            <div className="text-center space-y-4 border-b-2 border-slate-100 pb-8">
-              <h1 className="text-3xl font-black text-slate-900 leading-tight">{state.metadata.title}</h1>
-              <p className="text-lg text-slate-500 font-medium italic whitespace-pre-line">{state.metadata.authors}</p>
-            </div>
+              <div className="grid grid-cols-1 gap-6">
+                {/* Original Citation Box */}
+                <div className="border-2 border-slate-200 rounded-2xl p-6 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-2 h-full bg-slate-400"></div>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 pl-3">Detected in Document</h3>
+                  <p className="text-slate-800 font-serif leading-relaxed pl-3">{crossrefResults[resolvingIndex].original}</p>
+                </div>
 
-            {/* Abstract Block */}
-            <div className="space-y-4 bg-slate-50 p-8 rounded-2xl border border-slate-100">
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest text-center mb-4">Abstract</h2>
-              <p className="text-slate-700 leading-relaxed text-justify font-serif text-lg italic transition-all duration-500">
-                {state.metadata.abstract}
-              </p>
-            </div>
+                {/* Suggested Citation Box */}
+                <div className="border-2 border-emerald-200 bg-emerald-50/30 rounded-2xl p-6 relative overflow-hidden shadow-sm">
+                  <div className="absolute top-0 left-0 w-2 h-full bg-emerald-400"></div>
+                  <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 pl-3 flex justify-between">
+                    Crossref Suggestion
+                    {crossrefResults[resolvingIndex].score && (
+                      <span className="text-emerald-500 bg-emerald-100 px-2 py-0.5 rounded">Score: {Math.round(crossrefResults[resolvingIndex].score)}</span>
+                    )}
+                  </h3>
+                  <p className="text-emerald-900 font-serif leading-relaxed pl-3 font-medium">
+                    {crossrefResults[resolvingIndex].suggestion || "No highly confident suggestion available."}
+                  </p>
+                </div>
+              </div>
 
-            {/* Document Body (The actual text!) */}
-            <div className="space-y-4 pt-4">
-              <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Manuscript Body</h2>
-              <div className="text-slate-800 leading-relaxed font-serif text-justify whitespace-pre-wrap">
-                {/* We display the raw text here, giving the illusion of the full rendered document */}
-                {state.rawText}
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-6">
+                <button
+                  onClick={() => handleCitationChoice('keep')}
+                  className="flex-1 bg-white border-2 border-slate-200 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-bold py-4 rounded-xl transition-all uppercase tracking-widest text-xs"
+                >
+                  Keep Original
+                </button>
+                <button
+                  onClick={() => handleCitationChoice('accept')}
+                  disabled={!crossrefResults[resolvingIndex].suggestion}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl transition-all shadow-lg hover:shadow-emerald-200 uppercase tracking-widest text-xs"
+                >
+                  Accept Suggestion
+                </button>
               </div>
             </div>
+          ) : (
+            <div className="max-w-3xl mx-auto space-y-12">
+              {/* Header Block */}
+              <div className="text-center space-y-4 border-b-2 border-slate-100 pb-8">
+                <h1 className="text-3xl font-black text-slate-900 leading-tight">{state.metadata.title}</h1>
+                <p className="text-lg text-slate-500 font-medium italic whitespace-pre-line">{state.metadata.authors}</p>
+              </div>
 
-            {/* References Block */}
-            <div className="pt-10 space-y-4 border-t-2 border-slate-100">
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">References</h2>
-              <pre className="text-xs text-slate-600 whitespace-pre-wrap font-mono bg-slate-900 text-slate-300 p-6 rounded-xl overflow-x-auto">
-                {state.metadata.references}
-              </pre>
+              {/* Abstract Block */}
+              <div className="space-y-4 bg-slate-50 p-8 rounded-2xl border border-slate-100">
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest text-center mb-4">Abstract</h2>
+                <p className="text-slate-700 leading-relaxed text-justify font-serif text-lg italic transition-all duration-500">
+                  {state.metadata.abstract}
+                </p>
+              </div>
+
+              {/* Document Body (The actual text!) */}
+              <div className="space-y-4 pt-4">
+                <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Manuscript Body</h2>
+                <div className="text-slate-800 leading-relaxed font-serif text-justify whitespace-pre-wrap">
+                  {/* We display the raw text here, giving the illusion of the full rendered document */}
+                  {state.rawText}
+                </div>
+              </div>
+
+              {/* References Block */}
+              <div className="pt-10 space-y-4 border-t-2 border-slate-100">
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">References</h2>
+                <pre className="text-xs text-slate-600 whitespace-pre-wrap font-mono bg-slate-900 text-slate-300 p-6 rounded-xl overflow-x-auto">
+                  {state.metadata.references}
+                </pre>
+              </div>
             </div>
-
-          </div>
+          )}
         </div>
       </motion.div>
 
@@ -137,7 +248,7 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
             <CheckItem
               status={fixesApplied.includes('Standardize Citations') ? 'pass' : 'warn'}
               label="Citation Style (IEEE)"
-              detail={!fixesApplied.includes('Standardize Citations') ? "2 citations need formatting" : "All citations verified"}
+              detail={!fixesApplied.includes('Standardize Citations') ? "Citations need formatting verification" : "All citations verified"}
             />
             <CheckItem
               status={fixesApplied.includes('Format Structural Layout Only') ? 'pass' : 'warn'}
@@ -173,10 +284,7 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
               icon={<BookOpen className="w-4 h-4" />}
               label="Standardize Citations"
               applied={fixesApplied.includes('Standardize Citations')}
-              onClick={() => handleFix('Standardize Citations', () => {
-                // You can connect this to a dedicated backend route later!
-                // For now, it just toggles the UI checklist state.
-              })}
+              onClick={startCitationStandardization}
             />
           </div>
         </motion.div>

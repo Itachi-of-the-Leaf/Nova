@@ -18,34 +18,51 @@ OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'phi3:mini')
 # ==========================================
 def extract_text_from_docx(file_path):
     """
-    Extracts text from a .docx file, tagging headings by their DOCX style:
-      Heading 1 / Title → @@H1@@text@@END@@
-      Heading 2         → @@H2@@text@@END@@
-      Heading 3         → @@H3@@text@@END@@
-    These markers let formatter.py produce proper \\section / \\subsection hierarchy.
+    Extracts text from a .docx file using the unstructured library. 
+    This enables Document Layout Analysis (DLA) that preserves spatial relationships
+    (multi-column flows, tables, headers) before feeding to the NLP engine.
     """
     try:
-        doc = docx.Document(file_path)
-        extracted_paragraphs = []
-
-        for para in doc.paragraphs:
-            clean_text = para.text.strip()
+        from unstructured.partition.docx import partition_docx
+        
+        # Partition docx extracts layout-aware semantic blocks to prevent
+        # multi-column reading order corruption.
+        elements = partition_docx(filename=file_path)
+        
+        extracted_blocks = []
+        for element in elements:
+            clean_text = str(element).strip()
             if not clean_text:
                 continue
 
-            style = para.style.name if para.style else ""
-
-            if style.startswith("Heading 1") or style == "Title":
-                extracted_paragraphs.append(f"@@H1@@{clean_text}@@END@@")
-            elif style.startswith("Heading 2"):
-                extracted_paragraphs.append(f"@@H2@@{clean_text}@@END@@")
-            elif style.startswith("Heading 3"):
-                extracted_paragraphs.append(f"@@H3@@{clean_text}@@END@@")
+            el_type = type(element).__name__
+            
+            # Map structural elements to our tagging format
+            if el_type == "Title":
+                depth = getattr(element.metadata, "category_depth", 0) if hasattr(element, "metadata") else 0
+                if depth == 0 or depth == 1:
+                    extracted_blocks.append(f"@@H1@@{clean_text}@@END@@")
+                elif depth == 2:
+                    extracted_blocks.append(f"@@H2@@{clean_text}@@END@@")
+                else:
+                    extracted_blocks.append(f"@@H3@@{clean_text}@@END@@")
+            elif el_type == "Table":
+                # Convert complex tables directly to HTML to preserve rowspan/colspan
+                html = getattr(element.metadata, "text_as_html", "") if hasattr(element, "metadata") else ""
+                if html:
+                    extracted_blocks.append(f"\n[TABLE_START]\n{html}\n[TABLE_END]\n")
+                else:
+                    extracted_blocks.append(f"\n[TABLE_START]\n{clean_text}\n[TABLE_END]\n")
+            elif el_type in ["Header", "Footer"]:
+                # Ignore running headers/footers to avoid polluting core text semantic flow
+                continue
             else:
-                extracted_paragraphs.append(clean_text)
-
-        return '\n'.join(extracted_paragraphs)
+                extracted_blocks.append(clean_text)
+                
+        return '\n'.join(extracted_blocks)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return f"An error occurred during extraction: {str(e)}"
 
 

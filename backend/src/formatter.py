@@ -50,7 +50,7 @@ def _convert_headings(text: str) -> str:
         max_cols = max((len(r.find_all(['td', 'th'])) for r in rows), default=1)
         col_format = "l" * max_cols
         
-        latex_str = "\\begin{table*}[tps]\n\\centering\n\\begin{tabular}{" + col_format + "}\n\\hline\n"
+        latex_str = "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{" + col_format + "}\n\\hline\n"
         
         for row in rows:
             cells = row.find_all(['td', 'th'])
@@ -60,7 +60,7 @@ def _convert_headings(text: str) -> str:
             padded_cells = escaped_cells + [""] * (max_cols - len(escaped_cells))
             latex_str += " & ".join(padded_cells) + " \\\\\n"
             
-        latex_str += "\\hline\n\\end{tabular}\n\\end{table*}\n"
+        latex_str += "\\hline\n\\end{tabular}\n\\end{table}\n"
         return latex_str
 
     # Process block by block

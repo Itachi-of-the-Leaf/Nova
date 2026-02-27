@@ -27,16 +27,13 @@ def extract_text_from_docx(file_path):
         
         # Partition docx/pdf extracts layout-aware semantic blocks to prevent
         # multi-column reading order corruption. Use hi_res and yolo to avoid OCR artifacts on tables.
-        # Adjusted chunking to preserve paragraphs/sentences.
+        # Disabled chunking to prevent Tables from being flattened into CompositeElements.
         elements = partition(
             filename=file_path,
             strategy="hi_res",
             hi_res_model_name="yolox",
             infer_table_structure=True,
             skip_infer_table_types=["pdf"],
-            chunking_strategy="by_title",
-            combine_text_under_n_chars=500,
-            max_characters=2000,
             languages=["eng"]
         )
         
@@ -122,6 +119,7 @@ def extract_text_from_docx(file_path):
             extracted_blocks.append(f"@@FOOTNOTE@@{fn_text}@@END@@")
             
         # Post-Process: Fix abrupt paragraph breaks
+        import logging
         processed_blocks = []
         for block in extracted_blocks:
             if not processed_blocks:
@@ -136,11 +134,25 @@ def extract_text_from_docx(file_path):
                 continue
                 
             # Merge if the previous string doesn't end with punctuation
-            if prev and not prev.endswith(('.', '?', '!', ':', '"', "'", '”', '’', ')', ']')):
+            # Check the last meaningful character (ignore trailing spaces/quotes/brackets)
+            clean_prev = prev.rstrip(r' \'"”’)]\}' + '\n')
+            
+            # Avoid merging if the NEXT block looks like a structural Header
+            clean_block = block.strip()
+            next_is_header = len(clean_block) > 0 and len(clean_block) < 60 and clean_block[0].isupper() and not clean_block.endswith(('.', '?', '!', ':', ',')) and '\n' not in clean_block
+            
+            # Avoid merging if the PREVIOUS block is a short header itself
+            prev_is_header = len(clean_prev) > 0 and len(clean_prev) < 100 and clean_prev[0].isupper() and not clean_prev.endswith(('.', '?', '!', ':', ','))
+
+            if clean_prev and not clean_prev.endswith(('.', '?', '!', ':')) and not next_is_header and not prev_is_header:
                 if prev.endswith('-'):
-                    processed_blocks[-1] = prev[:-1] + block  # hyphen continuation
+                    merged = prev[:-1] + block  # hyphen continuation
+                    logging.debug(f"MERGED HYPHEN PARAGRAPH:\n[PREV]: {prev}\n[NEXT]: {block}\n[RSLT]: {merged}\n")
+                    processed_blocks[-1] = merged
                 else:
-                    processed_blocks[-1] = prev + " " + block # space continuation
+                    merged = prev + " " + block # space continuation
+                    logging.debug(f"MERGED ABRUPT PARAGRAPH:\n[PREV]: {prev}\n[NEXT]: {block}\n[RSLT]: {merged}\n")
+                    processed_blocks[-1] = merged
             else:
                 processed_blocks.append(block)
                 
@@ -194,14 +206,23 @@ def get_document_metadata(text_content):
         return json.loads(text)
 
     # ==========================================
-    # PASS 1: Map-Reduce Semantic Chunking
+    # PASS 1: Map-Reduce Semantic Chunking & Spatial Title Guarantee
     # ==========================================
     
     # GUARANTEED TITLE EXTRACTION: Bypass LLM for Title
     spatial_title_match = re.search(r'SPATIAL_DETECTED_TITLE:\s*(.+)', text_content)
     if spatial_title_match:
         # Hardcode it so the LLM doesn't even get a chance to erase it
-        metadata["title"] = spatial_title_match.group(1).strip()
+        title_candidate = spatial_title_match.group(1).strip()
+        # Drop generic submission headers
+        if title_candidate.lower() not in ["research paper", "article", "review paper", "original article"]:
+            metadata["title"] = title_candidate
+            
+    # Fallback to the absolute first sentence if the spatial tag failed or was dropped
+    if not metadata["title"]:
+        first_line = text_content.strip().split('\n')[0].strip()
+        if len(first_line) > 10 and first_line.lower() not in ["research paper", "article", "review paper"]:
+            metadata["title"] = first_line
     
     # Break the document into strictly sized chunks to protect the KV cache (8GB RAM limit)
     chunks = get_semantic_chunks(text_content, chunk_size=3000)

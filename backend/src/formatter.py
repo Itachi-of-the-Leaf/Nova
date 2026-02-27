@@ -31,27 +31,69 @@ def _latex_escape(text: str) -> str:
 def _convert_headings(text: str) -> str:
     """
     Convert @@H1@@...@@END@@ markers into LaTeX section commands.
+    Intercepts [TABLE_START]...[TABLE_END] to transpile nested HTML to LaTeX tabular.
     Plain text lines are LaTeX-escaped as-is.
     """
-    lines = text.split('\n')
-    latex_lines = []
-    for line in lines:
-        m1 = re.match(r'@@H1@@(.+?)@@END@@', line)
-        m2 = re.match(r'@@H2@@(.+?)@@END@@', line)
-        m3 = re.match(r'@@H3@@(.+?)@@END@@', line)
-        if m1:
-            latex_lines.append(f'\n\\section{{{_latex_escape(m1.group(1))}}}\n')
-        elif m2:
-            latex_lines.append(f'\n\\subsection{{{_latex_escape(m2.group(1))}}}\n')
-        elif m3:
-            latex_lines.append(f'\n\\subsubsection{{{_latex_escape(m3.group(1))}}}\n')
-        else:
-            latex_lines.append(_latex_escape(line))
+    from bs4 import BeautifulSoup
+
+    def _html_to_latex_table(html_str: str) -> str:
+        soup = BeautifulSoup(html_str, 'html.parser')
+        table = soup.find('table')
+        if not table:
+            return _latex_escape(html_str)
             
-    # Use double-newlines so LaTeX recognizes paragraph breaks instead of 
-    # merging everything into single blocks. This also ensures each reference 
-    # appears on a new line (if they were separate paragraphs in the original doc).
-    return '\n\n'.join(latex_lines)
+        rows = table.find_all('tr')
+        if not rows:
+            return ""
+            
+        # Determine max columns
+        max_cols = max((len(r.find_all(['td', 'th'])) for r in rows), default=1)
+        col_format = "l" * max_cols
+        
+        latex_str = "\\begin{table*}[tps]\n\\centering\n\\begin{tabular}{" + col_format + "}\n\\hline\n"
+        
+        for row in rows:
+            cells = row.find_all(['td', 'th'])
+            # Clean and escape each cell's text
+            escaped_cells = [_latex_escape(cell.get_text(strip=True)) for cell in cells]
+            # Pad if row has fewer cells
+            padded_cells = escaped_cells + [""] * (max_cols - len(escaped_cells))
+            latex_str += " & ".join(padded_cells) + " \\\\\n"
+            
+        latex_str += "\\hline\n\\end{tabular}\n\\end{table*}\n"
+        return latex_str
+
+    # Process block by block
+    # We will split the text by table markers first
+    blocks = re.split(r'(\[TABLE_START\][\s\S]*?\[TABLE_END\])', text)
+    
+    final_latex_parts = []
+    
+    for block in blocks:
+        if block.startswith('[TABLE_START]') and block.endswith('[TABLE_END]'):
+            html_content = block[13:-11].strip() # strip the markers
+            final_latex_parts.append(_html_to_latex_table(html_content))
+            continue
+            
+        # Standard line-by-line processing for headings and text
+        lines = block.split('\n')
+        for line in lines:
+            m1 = re.match(r'@@H1@@(.*?)@@END@@', line)
+            m2 = re.match(r'@@H2@@(.*?)@@END@@', line)
+            m3 = re.match(r'@@H3@@(.*?)@@END@@', line)
+            if m1:
+                final_latex_parts.append(f'\n\\section{{{_latex_escape(m1.group(1))}}}\n')
+            elif m2:
+                final_latex_parts.append(f'\n\\subsection{{{_latex_escape(m2.group(1))}}}\n')
+            elif m3:
+                final_latex_parts.append(f'\n\\subsubsection{{{_latex_escape(m3.group(1))}}}\n')
+            else:
+                if line.strip():
+                    final_latex_parts.append(_latex_escape(line))
+                else:
+                    final_latex_parts.append("") # preserve double newline logic
+
+    return '\n\n'.join(final_latex_parts)
 
 
 def _apply_metadata_headings(body_text: str, headings_str: str, metadata: dict) -> str:

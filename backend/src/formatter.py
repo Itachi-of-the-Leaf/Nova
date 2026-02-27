@@ -82,7 +82,11 @@ def _convert_headings(text: str) -> str:
             m2 = re.match(r'@@H2@@(.*?)@@END@@', line)
             m3 = re.match(r'@@H3@@(.*?)@@END@@', line)
             if m1:
-                final_latex_parts.append(f'\n\\section{{{_latex_escape(m1.group(1))}}}\n')
+                heading_text = m1.group(1)
+                if heading_text.lower().strip() == 'references':
+                    final_latex_parts.append(f'\n\\section*{{{_latex_escape(heading_text)}}}\n')
+                else:
+                    final_latex_parts.append(f'\n\\section{{{_latex_escape(heading_text)}}}\n')
             elif m2:
                 final_latex_parts.append(f'\n\\subsection{{{_latex_escape(m2.group(1))}}}\n')
             elif m3:
@@ -193,11 +197,10 @@ def generate_pdf(metadata, body_text):
         if cut_index > 0:
             tagged_body = tagged_body[cut_index:]
 
-        # Finally, strip any hardcoded Roman numerals from the tagged headings
-        # because \section{} generates its own Roman numerals.
-        # Matches @@H1@@ I. Introduction @@END@@  ->  @@H1@@ Introduction @@END@@
+        # Finally, strip any hardcoded Roman numerals, alphabetical, or decimal list indices 
+        # from the tagged headings because \section{} generates its own numbering.
         tagged_body = re.sub(
-            r'(@@H[123]@@)\s*(?:[IVXLCDM]+\.|[0-9]+\.)\s*(.*?)(@@END@@)',
+            r'(@@H[123]@@)\s*(?:(?:[IVXLCDM]+|[A-Z])\.|\d+(?:\.\d+)*\.?)\s+(.*?)\s*(@@END@@)',
             r'\1\2\3',
             tagged_body,
             flags=re.IGNORECASE

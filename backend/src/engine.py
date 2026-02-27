@@ -36,10 +36,14 @@ def extract_text_from_docx(file_path):
         )
         
         extracted_blocks = []
+        import re
         for element in elements:
             clean_text = str(element).strip()
             if not clean_text:
                 continue
+
+            # targeted regex to fix OCR artifacts where S<number> is read as $<number>
+            clean_text = re.sub(r'\$(\d+)', r'S\1', clean_text)
 
             el_type = type(element).__name__
             

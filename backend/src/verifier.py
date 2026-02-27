@@ -83,22 +83,27 @@ def verify_single_citation(citation):
             "suggestion": None
         }
 
-def verify_references_block(references_text):
-    """Refined splitter for APA/MLA (Name-Year) and Numbered lists."""
-    if not references_text or "No references" in references_text:
+import logging
+
+def verify_references_block(references_list):
+    """Processes a list of isolated citation strings against the Crossref API."""
+    if not references_list:
         return []
     
-    # Priority 1: Unstructured layout list tags
-    if "@@LIST_ITEM@@" in references_text:
-        items = re.findall(r'@@LIST_ITEM@@(.*?)@@END@@', references_text, re.DOTALL)
-        citations = [c.replace('\n', ' ').strip() for c in items if len(c.strip()) > 15]
+    # Safety Check: If passed a string instead of a list (e.g. legacy payload), wrap it
+    if isinstance(references_list, str):
+        if "No references" in references_list:
+            return []
+        citations = [references_list]
+    elif isinstance(references_list, list):
+        citations = [c.strip() for c in references_list if isinstance(c, str) and len(c.strip()) > 15]
     else:
-        # Fallback: regex guessing
-        raw_citations = re.split(r'\n(?=\[\d+\]|\d+\.|[A-Z][a-z]+,?\s+[A-Z]\.?\s*\(?\d{4}\)?)| \n\n+', references_text)
-        citations = [c.strip() for c in raw_citations if len(c.strip()) > 15]
+        logging.error(f"Malformed payload type passed to verifier: {type(references_list)}")
+        return []
+        
+    logging.debug(f"Verifier received {len(citations)} chunks for API processing.")
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         results = list(executor.map(verify_single_citation, citations))
     
-    # Return the list of Dicts for the REST endpoint.
     return results

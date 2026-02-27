@@ -136,8 +136,10 @@ async def fix_abstract(request: AbstractRequest):
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 
+from typing import List
+
 class CrossrefRequest(BaseModel):
-    references: str
+    references: List[str]
 
 @app.post("/verify-crossref")
 async def verify_crossref(request: CrossrefRequest):

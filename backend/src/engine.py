@@ -23,11 +23,17 @@ def extract_text_from_docx(file_path):
     (multi-column flows, tables, headers) before feeding to the NLP engine.
     """
     try:
-        from unstructured.partition.docx import partition_docx
+        from unstructured.partition.auto import partition
         
-        # Partition docx extracts layout-aware semantic blocks to prevent
-        # multi-column reading order corruption.
-        elements = partition_docx(filename=file_path)
+        # Partition docx/pdf extracts layout-aware semantic blocks to prevent
+        # multi-column reading order corruption. Use hi_res and yolo to avoid OCR artifacts on tables.
+        elements = partition(
+            filename=file_path,
+            strategy="hi_res",
+            hi_res_model_name="yolox",
+            infer_table_structure=True,
+            pdf_infer_table_structure=True
+        )
         
         extracted_blocks = []
         for element in elements:

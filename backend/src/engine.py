@@ -218,24 +218,11 @@ TEXT:
 # ==========================================
 def fix_and_shorten_abstract(abstract_text):
     """
-    Uses the local LLM to fix grammar and shorten the abstract to <250 words.
+    Ethical AI Firewall: Generative modification of human prose is disabled to prevent
+    AI detector false positives (Turnitin/GPTZero). Returns original text exactly,
+    preserving burstiness and perplexity.
     """
-    prompt = f"""You are an expert academic editor.
-Please rewrite the following abstract to fix any grammatical errors, improve academic tone, and ensure it is strictly under 250 words.
-Return ONLY the revised abstract text. Do not include any conversational filler, explanations, or quotes.
-
-ORIGINAL ABSTRACT:
-{abstract_text}
-"""
-    try:
-        response = ollama.chat(
-            model=OLLAMA_MODEL,
-            messages=[{'role': 'user', 'content': prompt}],
-        )
-        return response['message']['content'].strip()
-    except Exception as e:
-        print(f"AI Fixer Failed: {e}")
-        return abstract_text
+    return abstract_text
 
 
 # ==========================================

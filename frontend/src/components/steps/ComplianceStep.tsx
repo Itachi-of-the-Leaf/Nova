@@ -140,9 +140,9 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
               detail={!fixesApplied.includes('Standardize Citations') ? "2 citations need formatting" : "All citations verified"}
             />
             <CheckItem
-              status={fixesApplied.includes('Auto-Fix Grammar') ? 'pass' : 'warn'}
-              label="Grammatical Accuracy"
-              detail={!fixesApplied.includes('Auto-Fix Grammar') ? "Minor passive voice issues detected" : "Grammar optimized"}
+              status={fixesApplied.includes('Format Structural Layout Only') ? 'pass' : 'warn'}
+              label="Prose Integrity"
+              detail={!fixesApplied.includes('Format Structural Layout Only') ? "Pending rendering" : "Human prose 100% preserved"}
             />
             <CheckItem status="pass" label="Proper Formatting (Margins/Fonts)" />
           </div>
@@ -156,18 +156,18 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
           className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 shrink-0"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-              <Wand2 className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200">
+              <ShieldCheck className="w-5 h-5 text-slate-600" />
             </div>
-            <h3 className="font-bold text-slate-900 text-sm uppercase tracking-tight">Gen-AI Fixer <span className="text-purple-400">🪄</span></h3>
+            <h3 className="font-bold text-slate-900 text-sm uppercase tracking-tight">Ethical Firewall <span className="text-slate-400">🛡️</span></h3>
           </div>
 
           <div className="space-y-3">
             <FixButton
               icon={<AlignLeft className="w-4 h-4" />}
-              label="Auto-Fix Grammar"
-              applied={fixesApplied.includes('Auto-Fix Grammar')}
-              onClick={() => handleFix('Auto-Fix Grammar', fixAbstractFromAPI)}
+              label="Format Structural Layout Only"
+              applied={fixesApplied.includes('Format Structural Layout Only')}
+              onClick={() => handleFix('Format Structural Layout Only', fixAbstractFromAPI)}
             />
             <FixButton
               icon={<BookOpen className="w-4 h-4" />}
@@ -280,8 +280,8 @@ function FixButton({ icon, label, applied, onClick }: { icon: React.ReactNode, l
       onClick={onClick}
       disabled={applied}
       className={`w-full flex items-center justify-between p-4 rounded-xl border-2 text-sm font-bold transition-all ${applied
-          ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed'
-          : 'bg-white border-slate-100 text-slate-600 hover:border-purple-200 hover:bg-purple-50/50 hover:text-purple-700 shadow-sm'
+        ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed'
+        : 'bg-white border-slate-100 text-slate-600 hover:border-purple-200 hover:bg-purple-50/50 hover:text-purple-700 shadow-sm'
         }`}
     >
       <div className="flex items-center gap-4">

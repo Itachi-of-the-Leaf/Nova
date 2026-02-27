@@ -98,9 +98,16 @@ export function ComplianceStep({ state, updateState, onNext }: { state: AppState
   const handleCitationChoice = (choice: 'accept' | 'keep') => {
     const currentMismatch = crossrefResults[resolvingIndex];
 
-    // In a real app we would update the state.metadata.references string here 
-    // by replacing the exact substring (currentMismatch.original) with the chosen string.
-    // For this prototype, we'll just advance the index and pretend we modified it.
+    // If accept is chosen, aggressively replace the original string block in the references text
+    if (choice === 'accept' && currentMismatch.suggestion) {
+      const newRefs = state.metadata.references.replace(
+        currentMismatch.original,
+        currentMismatch.suggestion
+      );
+      updateState({
+        metadata: { ...state.metadata, references: newRefs }
+      });
+    }
 
     if (resolvingIndex + 1 < crossrefResults.length) {
       setResolvingIndex(resolvingIndex + 1);

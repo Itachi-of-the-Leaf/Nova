@@ -49,12 +49,16 @@ def _latex_escape(text: str) -> str:
     for char, latex_cmd in unicode_map.items():
         text = text.replace(char, latex_cmd)
         
+    # Phase 4: Mathematical Symbol Formatting
+    # Wrap specific math functions and variables like IINo, sup(D)
+    # 1. Known math blocks
+    text = re.sub(r'\b(IINo|sup\([A-Za-z0-9]+\))\b', r'$\1$', text)
+    
     # Regex to sweep and safely strip any remaining unmapped symbols to prevent pdflatex crash
     # Keeps ASCII (\x00-\x7F) and basic Latin-1 Supplement (\x80-\xFF) for accents
     text = re.sub(r'[^\x00-\xFF]+', '', text)
         
     return text
-
 
 def _convert_headings(text: str) -> str:
     """
@@ -76,7 +80,10 @@ def _convert_headings(text: str) -> str:
             
         # Determine max columns
         max_cols = max((len(r.find_all(['td', 'th'])) for r in rows), default=1)
-        col_format = "l" * max_cols
+        
+        # Use paragraph blocks with proportional widths to force wrapping
+        col_width = f"{0.95 / max_cols:.3f}\\textwidth"
+        col_format = "|" + "|".join([f"p{{{col_width}}}"] * max_cols) + "|"
         
         latex_str = "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{" + col_format + "}\n\\hline\n"
         
@@ -86,9 +93,9 @@ def _convert_headings(text: str) -> str:
             escaped_cells = [_latex_escape(cell.get_text(strip=True)) for cell in cells]
             # Pad if row has fewer cells
             padded_cells = escaped_cells + [""] * (max_cols - len(escaped_cells))
-            latex_str += " & ".join(padded_cells) + " \\\\\n"
+            latex_str += " & ".join(padded_cells) + " \\\\\n\\hline\n"
             
-        latex_str += "\\hline\n\\end{tabular}\n\\end{table}\n"
+        latex_str += "\\end{tabular}\n\\end{table}\n"
         return latex_str
 
     # Process block by block

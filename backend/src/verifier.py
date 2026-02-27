@@ -44,8 +44,8 @@ def verify_single_citation(citation):
                     if pub and "date-parts" in pub and pub["date-parts"]:
                         year = str(pub["date-parts"][0][0])
                         
-                    # Override hallucinated/invalid Crossref years (e.g., 2069) with the original citation year
-                    if original_year and (not year or int(year) > 2030 or int(year) < 1800 or year != original_year):
+                    # Fix Echo Bug: Trust Crossref year over what was scraped. Only fallback if Crossref is empty.
+                    if original_year and not year:
                         year = original_year
                         
                     venue = top_hit.get("container-title", [""])[0]
@@ -86,18 +86,19 @@ def verify_single_citation(citation):
 def verify_references_block(references_text):
     """Refined splitter for APA/MLA (Name-Year) and Numbered lists."""
     if not references_text or "No references" in references_text:
-        return references_text
+        return []
     
-    # NEW REGEX: Splits by:
-    # 1. Numbered items: [1] or 1.
-    # 2. APA Items: Newline followed by an Uppercase Name and a (Year)
-    # 3. Double newlines
-    raw_citations = re.split(r'\n(?=\[\d+\]|\d+\.|[A-Z][a-z]+,?\s+[A-Z]\.?\s*\(?\d{4}\)?)| \n\n+', references_text)
-    
-    citations = [c.strip() for c in raw_citations if len(c.strip()) > 15]
+    # Priority 1: Unstructured layout list tags
+    if "@@LIST_ITEM@@" in references_text:
+        items = re.findall(r'@@LIST_ITEM@@(.*?)@@END@@', references_text, re.DOTALL)
+        citations = [c.replace('\n', ' ').strip() for c in items if len(c.strip()) > 15]
+    else:
+        # Fallback: regex guessing
+        raw_citations = re.split(r'\n(?=\[\d+\]|\d+\.|[A-Z][a-z]+,?\s+[A-Z]\.?\s*\(?\d{4}\)?)| \n\n+', references_text)
+        citations = [c.strip() for c in raw_citations if len(c.strip()) > 15]
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         results = list(executor.map(verify_single_citation, citations))
     
-    # Do not join to a string! Return the list of Dicts for the REST endpoint.
+    # Return the list of Dicts for the REST endpoint.
     return results

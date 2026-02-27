@@ -32,7 +32,8 @@ def extract_text_from_docx(file_path):
             strategy="hi_res",
             hi_res_model_name="yolox",
             infer_table_structure=True,
-            pdf_infer_table_structure=True
+            pdf_infer_table_structure=True,
+            chunking_strategy="by_title"
         )
         
         extracted_blocks = []

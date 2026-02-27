@@ -12,8 +12,14 @@ def verify_single_citation(citation):
     
     # URL encode the citation string for the query
     encoded_query = urllib.parse.quote(clean_citation)
-    url = f"https://api.crossref.org/works?query.bibliographic={encoded_query}&rows=1&select=title,DOI,score,author,published-print,published-online,container-title"
+    url = f"https://api.crossref.org/works?query.bibliographic={encoded_query}&rows=1&select=title,DOI,score,author,issued,published-print,published-online,container-title"
     
+    # Try to extract original year from the input text to prevent future hallucinatory dates
+    original_year = ""
+    year_match = re.search(r'\b(19\d{2}|20\d{2})\b', clean_citation)
+    if year_match:
+        original_year = year_match.group(1)
+
     # Crossref asks for a polite User-Agent
     req = urllib.request.Request(url, headers={'User-Agent': 'NOVA_Prototype/1.0 (mailto:prototype@nova.local)'})
     
@@ -34,9 +40,13 @@ def verify_single_citation(citation):
                     authors = ", ".join([f"{a.get('given', '')} {a.get('family', '')}".strip() for a in author_list])
                     
                     year = ""
-                    pub = top_hit.get("published-print") or top_hit.get("published-online")
+                    pub = top_hit.get("issued") or top_hit.get("published-print") or top_hit.get("published-online")
                     if pub and "date-parts" in pub and pub["date-parts"]:
-                        year = pub["date-parts"][0][0]
+                        year = str(pub["date-parts"][0][0])
+                        
+                    # Override hallucinated/invalid Crossref years (e.g., 2069) with the original citation year
+                    if original_year and (not year or int(year) > 2030 or int(year) < 1800 or year != original_year):
+                        year = original_year
                         
                     venue = top_hit.get("container-title", [""])[0]
                     

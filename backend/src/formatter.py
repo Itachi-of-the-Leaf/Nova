@@ -120,6 +120,7 @@ def _convert_headings(text: str) -> str:
         # Standard line-by-line processing for headings and text
         lines = block.split('\n')
         in_list = False
+        in_references = False
         
         for line in lines:
             m1 = re.match(r'@@H1@@(.*?)@@END@@', line)
@@ -129,18 +130,25 @@ def _convert_headings(text: str) -> str:
             
             # Context-switching for LaTeX Itemize block
             if m_list and not in_list:
-                final_latex_parts.append('\\begin{itemize}')
+                if in_references:
+                    final_latex_parts.append('\\begin{enumerate}[label={[\\arabic*]}]')
+                else:
+                    final_latex_parts.append('\\begin{itemize}')
                 in_list = True
             elif not m_list and in_list:
-                final_latex_parts.append('\\end{itemize}')
+                if in_references:
+                    final_latex_parts.append('\\end{enumerate}')
+                else:
+                    final_latex_parts.append('\\end{itemize}')
                 in_list = False
                 
             if m_list:
                 final_latex_parts.append(f'\\item {_latex_escape(m_list.group(1).strip())}')
             elif m1:
                 heading_text = m1.group(1)
-                if heading_text.lower().strip() == 'references':
-                    final_latex_parts.append(f'\n\\section*{{{_latex_escape(heading_text)}}}\n')
+                if 'references' in heading_text.lower():
+                    in_references = True
+                    final_latex_parts.append(f'\n\\begin{{sloppypar}}\n\\section*{{{_latex_escape(heading_text)}}}\n')
                 else:
                     final_latex_parts.append(f'\n\\section{{{_latex_escape(heading_text)}}}\n')
             elif m2:
@@ -157,7 +165,15 @@ def _convert_headings(text: str) -> str:
                     
         # Conclude itemize context if block ended on list
         if in_list:
-            final_latex_parts.append('\\end{itemize}')
+            if in_references:
+                final_latex_parts.append('\\end{enumerate}')
+            else:
+                final_latex_parts.append('\\end{itemize}')
+            in_list = False
+
+        if in_references:
+            final_latex_parts.append('\\end{sloppypar}')
+            in_references = False
 
     return '\n\n'.join(final_latex_parts)
 

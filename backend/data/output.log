@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.2.24)  27 FEB 2026 19:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.2.24)  28 FEB 2026 00:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -221,43 +221,59 @@ File: pdftex.def 2022/09/22 v1.2b Graphics/color driver for pdftex
 \Gin@req@height=\dimen173
 \Gin@req@width=\dimen174
 )
+(/usr/share/texlive/texmf-dist/tex/latex/enumitem/enumitem.sty
+Package: enumitem 2019/06/20 v3.9 Customized lists
+\labelindent=\skip54
+\enit@outerparindent=\dimen175
+\enit@toks=\toks24
+\enit@inbox=\box55
+\enit@count@id=\count280
+\enitdp@description=\count281
+)
+(/usr/share/texlive/texmf-dist/tex/latex/xurl/xurl.sty
+Package: xurl 2022/01/09 v 0.10 modify URL breaks
+
+(/usr/share/texlive/texmf-dist/tex/latex/url/url.sty
+\Urlmuskip=\muskip17
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+))
 (/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-01-04 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count280
-\l__pdf_internal_box=\box55
+\l__color_backend_stack_int=\count282
+\l__pdf_internal_box=\box56
 )
 (./output.aux)
 \openout1 = `output.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
 
 -- Lines per column: 56 (exact).
 (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count281
-\scratchdimen=\dimen175
-\scratchbox=\box56
-\nofMPsegments=\count282
-\nofMParguments=\count283
-\everyMPshowfont=\toks24
-\MPscratchCnt=\count284
-\MPscratchDim=\dimen176
-\MPnumerator=\count285
-\makeMPintoPDFobject=\count286
-\everyMPtoPDFconversion=\toks25
+\scratchcounter=\count283
+\scratchdimen=\dimen176
+\scratchbox=\box57
+\nofMPsegments=\count284
+\nofMParguments=\count285
+\everyMPshowfont=\toks25
+\MPscratchCnt=\count286
+\MPscratchDim=\dimen177
+\MPnumerator=\count287
+\makeMPintoPDFobject=\count288
+\everyMPtoPDFconversion=\toks26
 ) (/usr/share/texlive/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
@@ -267,63 +283,71 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-LaTeX Font Info:    Trying to load font information for U+msa on input line 15.
+[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texlive/texmf-
+dist/fonts/enc/dvips/base/8r.enc}
 
 
-(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
-File: umsa.fd 2013/01/14 v3.01 AMS symbols A
-)
-LaTeX Font Info:    Trying to load font information for U+msb on input line 15.
-
-
-(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
-File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texlive/texm
-f-dist/fonts/enc/dvips/base/8r.enc}
-
-
-]
-LaTeX Info: Symbol \textasciidieresis not provided by
-            font family ptm in TS1 encoding.
-            Default family used instead on input line 58.
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
-00.
- (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd
-File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-)
-LaTeX Font Info:    Trying to load font information for OMS+ptm on input line 1
-08.
-
-(/usr/share/texlive/texmf-dist/tex/latex/psnfss/omsptm.fd
-File: omsptm.fd 
-)
-LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 108.
- [2{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [3]
-Underfull \hbox (badness 2529) in paragraph at lines 498--499
-[]\OT1/ptm/m/n/10 Let \OMS/cmsy/m/n/10 f\OT1/ptm/m/n/10 Mi\OMS/cmsy/m/n/10 g\OT
-1/ptm/m/n/10 i>0 be an enu-mer-a-tion of the prob-a-bilis-tic
- []
-
-[4]
-Underfull \hbox (badness 4328) in paragraph at lines 570--571
-\OT1/ptm/m/n/10 with the fol-low-ing re-stric-tion on how a prob-a-bilis-tic
- []
-
-[5] [6] [7] [8] [9]
-Underfull \hbox (badness 6173) in paragraph at lines 2032--2033
-[]\OT1/ptm/m/n/10 William Aiello and Jo-han Has-tad. Sta-tis-ti-cal zero-
+] [2] [3] [4] [5] [6]
+Underfull \hbox (badness 2744) in paragraph at lines 395--396
+[]\OT1/ptm/m/n/10 Reinders, H. (2011). To-wards an op-er-a-tional-i-sa-tion
  []
 
 
-Underfull \hbox (badness 1442) in paragraph at lines 2048--2049
-[]\OT1/ptm/m/n/10 Manuel Blum, Al-fredo De San-tis, Sil-vio Mi-cali, and
+Underfull \hbox (badness 3375) in paragraph at lines 395--396
+\OT1/ptm/m/n/10 Teach-ing En-glish in mul-ti-lin-gual con-texts: Cur-rent
  []
 
-LaTeX Info: Symbol \textasciidieresis not provided by
-            font family ptm in TS1 encoding.
-            Default family used instead on input line 2056.
-[10]
+
+Underfull \hbox (badness 1910) in paragraph at lines 395--396
+\OT1/ptm/m/n/10 C. (2016). 20 years of au-ton-omy and tech-nol-ogy:
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 395--396
+\OT1/ptm/m/n/10 http://llt.msu.edu/issues/june2016/reinderswhite.pdf.
+ []
+
+
+Underfull \hbox (badness 7238) in paragraph at lines 397--398
+[]\OT1/ptm/m/n/10 Stockwell, G. (2007). Vo-cab-u-lary on the move:
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 397--398
+\OT1/ptm/m/n/10 In-ves-ti-gat-ing an in-tel-li-gent mo-bile phone-based
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 397--398
+\OT1/ptm/m/n/10 vo-cab-u-lary tu-tor. Com-puter As-sisted Lan-guage
+ []
+
+
+Underfull \hbox (badness 6110) in paragraph at lines 397--398
+\OT1/ptm/m/n/10 Chal-lenges in the tran-si-tions from an e-learning
+ []
+
+
+Underfull \hbox (badness 2970) in paragraph at lines 397--398
+\OT1/ptm/m/n/10 to an m-learning sys-tem. Trento, Italy: Uni-ver-sity
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 397--398
+\OT1/ptm/m/n/10 of Trento. Re-trieved De-cem-ber 12, 2016, from
+ []
+
+
+Overfull \hbox (26.76741pt too wide) in paragraph at lines 397--398
+\OT1/ptm/m/n/10 http://eprints.biblio.unitn.it/archive/00000532/01/paper4911.pd
+f.
+ []
+
+
+Underfull \hbox (badness 1478) in paragraph at lines 397--398
+\OT1/ptm/m/n/10 the ef-fec-tive-ness of vo-cab-u-lary learn-ing via mo-bile
+ []
+
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -335,33 +359,28 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[11] (./output.aux)
+[7] (./output.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 3501 strings out of 474222
- 55240 string characters out of 5748733
- 1941975 words of memory out of 5000000
- 25735 multiletter control sequences out of 15000+600000
- 592886 words of font info for 106 fonts, out of 8000000 for 9000
+ 3844 strings out of 474222
+ 61264 string characters out of 5748733
+ 1940975 words of memory out of 5000000
+ 26095 multiletter control sequences out of 15000+600000
+ 587436 words of font info for 84 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 57i,8n,65p,1424b,254s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></us
-r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share
-/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texli
-ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texmf/fonts/type1/p
-ublic/cm-super/sfrm1000.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/time
-s/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb><
-/usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texl
-ive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on output.pdf (11 pages, 152693 bytes).
+ 57i,8n,65p,2089b,257s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/t
+exlive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-d
+ist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1
+/urw/times/utmri8a.pfb>
+Output written on output.pdf (7 pages, 88807 bytes).
 PDF statistics:
- 92 PDF objects out of 1000 (max. 8388607)
- 58 compressed objects within 1 object stream
+ 49 PDF objects out of 1000 (max. 8388607)
+ 31 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

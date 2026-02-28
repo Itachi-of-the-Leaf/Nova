@@ -24,14 +24,14 @@ def extract_text_from_docx(file_path):
     """
     try:
         from unstructured.partition.auto import partition
+        import html
         
         # Partition docx/pdf extracts layout-aware semantic blocks to prevent
-        # multi-column reading order corruption. Use hi_res and yolo to avoid OCR artifacts on tables.
+        # multi-column reading order corruption. Use fast to avoid OCR artifacts on tables.
         # Adjusted chunking to preserve paragraphs/sentences.
         elements = partition(
             filename=file_path,
-            strategy="hi_res",
-            hi_res_model_name="yolox",
+            strategy="fast",
             infer_table_structure=True,
             skip_infer_table_types=["pdf"],
             chunking_strategy="by_title",
@@ -59,13 +59,18 @@ def extract_text_from_docx(file_path):
                 if m:
                     footnotes[m.group(1)] = m.group(2)
                 else:
-                    footnotes["unknown"] = clean_text
+                    normal_elements.append(element)
             else:
                 normal_elements.append(element)
-
-        # PASS 2: Process text and inject \footnote inline
-        for element in normal_elements:
+        
+        # PASS 2: Re-inject Footnotes directly after the reference [1] in the text
+        # and parse the rest of the text
+        title_locked = False
+        for i, element in enumerate(normal_elements):
             clean_text = str(element).strip()
+            
+            # Sanitization: Ensure HTML entities like &amp; are unescaped early
+            clean_text = html.unescape(clean_text)
 
             # clean gibberish or known OCR failure (Use longMasims -> Use long systems/margins? Actually we just strip exact known bad strings if needed, or let hi_res handle it)
             clean_text = clean_text.replace("Use longMasims", "")
@@ -87,20 +92,37 @@ def extract_text_from_docx(file_path):
                 clean_text = re.sub(r'\[(\d+)\]', repl_footnote, clean_text)
 
             el_type = type(element).__name__
+
+            # Regex Header Override
+            # If text matches ^[A-Z]\.\s, ^[IVX]+\.\s, or ^Abstract$ (case-insensitive)
+            if re.match(r'^(?:[A-Z]|[IVX]+)\.\s', clean_text) or re.match(r'(?i)^Abstract$', clean_text):
+                el_type = "Title"
+                if hasattr(element, "metadata"):
+                    element.metadata.category_depth = 1 # Force heading depth
+                
+            # Title Guard: first_page_lock
+            if el_type == "Title":
+                depth = getattr(element.metadata, "category_depth", 0) if hasattr(element, "metadata") else 0
+                if depth == 0:
+                    if not title_locked and "research paper" not in clean_text.lower():
+                        title_locked = True
+                    else:
+                        el_type = "NarrativeText" # Demote all subsequent locked titles or generic "Research paper" strings
             
             # Map structural elements to our tagging format
             if el_type == "Title":
                 depth = getattr(element.metadata, "category_depth", 0) if hasattr(element, "metadata") else 0
-                if depth == 0 or depth == 1:
+                
+                if depth == 0:
                     extracted_blocks.append(f"@@H1@@{clean_text}@@END@@")
-                elif depth == 2:
+                elif depth == 1:
                     extracted_blocks.append(f"@@H2@@{clean_text}@@END@@")
                 else:
                     extracted_blocks.append(f"@@H3@@{clean_text}@@END@@")
             elif el_type == "Table":
-                html = getattr(element.metadata, "text_as_html", "") if hasattr(element, "metadata") else ""
-                if html:
-                    extracted_blocks.append(f"\n[TABLE_START]\n{html}\n[TABLE_END]\n")
+                html_text = getattr(element.metadata, "text_as_html", "") if hasattr(element, "metadata") else ""
+                if html_text:
+                    extracted_blocks.append(f"\n[TABLE_START]\n{html_text}\n[TABLE_END]\n")
                 else:
                     extracted_blocks.append(f"\n[TABLE_START]\n{clean_text}\n[TABLE_END]\n")
             elif el_type in ["Header", "Footer"]:
@@ -115,6 +137,10 @@ def extract_text_from_docx(file_path):
             extracted_blocks.append(f"@@FOOTNOTE@@{fn_text}@@END@@")
             
         full_text = '\n'.join(extracted_blocks)
+        
+        # Sanitization: Remove markers that shouldn't reach the formatter
+        full_text = full_text.replace('@@LIST_ITEM@@', '').replace('@@END@@', '')
+        
         return full_text
     except Exception as e:
         import traceback
@@ -218,13 +244,20 @@ TEXT:
         if ref_match:
             raw_refs = ref_match.group(1).strip()
             
-            # Use strict layout tagging @@LIST_ITEM@@ if it exists
+            # To fix Target 1.5 (False Positive Chunking), we must apply the 
+            # robust regex split even if the text was tagged with @@LIST_ITEM@@.
+            # Sometimes the unstructured partitioner bundles multiple citations
+            # into a single LIST_ITEM block (e.g., Sample X).
+            # So we extract the raw text inside LIST_ITEMs, join them, 
+            # and then run the unified regex splitter on everything.
             if "@@LIST_ITEM@@" in raw_refs:
                 items = re.findall(r'@@LIST_ITEM@@(.*?)@@END@@', raw_refs, re.DOTALL)
-                metadata["references"] = [item.replace('\n', ' ').strip() for item in items if len(item) > 10]
+                combined_text = "\n".join(items)
             else:
-                raw_citations = re.split(r'\n(?=\[\d+\]|\d+\.|[A-Z][a-z]+,?\s+[A-Z]\.?\s*\(?\d{4}\)?)| \n\n+', raw_refs)
-                metadata["references"] = [c.strip() for c in raw_citations if len(c.strip()) > 10]
+                combined_text = raw_refs
+            
+            raw_citations = re.split(r'\n(?=\[\d+\]|\d+\.|[A-Z][a-z]+,?\s+[A-Z]\.?\s*\(?\d{4}\)?)| \n\n+', combined_text)
+            metadata["references"] = [c.replace('\n', ' ').strip() for c in raw_citations if len(c.strip()) > 10]
         else:
             metadata["references"] = []
     except Exception as e:

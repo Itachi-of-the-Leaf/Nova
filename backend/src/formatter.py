@@ -88,21 +88,43 @@ def _convert_headings(text: str) -> str:
         if not rows:
             return ""
             
-        # Determine max columns
-        max_cols = max((len(r.find_all(['td', 'th'])) for r in rows), default=1)
-        col_format = "l" * max_cols
-        
-        latex_str = "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{" + col_format + "}\n\\hline\n"
-        
+        # Determine max columns considering colspans
+        max_cols = 0
         for row in rows:
+            row_cols = sum(int(cell.get('colspan', 1)) for cell in row.find_all(['td', 'th']))
+            max_cols = max(max_cols, row_cols)
+        
+        # Use standard tabular wrapped in \resizebox to perfectly scale the entire structure to \columnwidth
+        col_format = "l" * max_cols
+        latex_str = "\\begin{table}[h!]\n\\centering\n\\resizebox{\\columnwidth}{!}{\n\\begin{tabular}{" + col_format + "}\n\\toprule\n"
+        
+        for i, row in enumerate(rows):
             cells = row.find_all(['td', 'th'])
-            # Clean and escape each cell's text
-            escaped_cells = [_latex_escape(cell.get_text(strip=True)) for cell in cells]
-            # Pad if row has fewer cells
-            padded_cells = escaped_cells + [""] * (max_cols - len(escaped_cells))
-            latex_str += " & ".join(padded_cells) + " \\\\\n"
+            latex_cells = []
+            current_row_cols = 0
             
-        latex_str += "\\hline\n\\end{tabular}\n\\end{table}\n"
+            for cell in cells:
+                colspan = int(cell.get('colspan', 1))
+                current_row_cols += colspan
+                content = _latex_escape(cell.get_text(strip=True))
+                
+                if cell.name == 'th':
+                    content = f"\\textbf{{{content}}}"
+                
+                if colspan > 1:
+                    content = f"\\multicolumn{{{colspan}}}{{c}}{{{content}}}"
+                
+                latex_cells.append(content)
+            
+            # Pad row if necessary
+            if current_row_cols < max_cols:
+                latex_cells.extend([""] * (max_cols - current_row_cols))
+                
+            latex_str += " & ".join(latex_cells) + " \\\\\n"
+            if i == 0:  # Header row
+                latex_str += "\\midrule\n"
+                
+        latex_str += "\\bottomrule\n\\end{tabular}\n}\n\\end{table}\n"
         return latex_str
 
     # Process block by block
@@ -146,7 +168,7 @@ def _convert_headings(text: str) -> str:
                 final_latex_parts.append(f'\\item {_latex_escape(m_list.group(1).strip())}')
             elif m1:
                 heading_text = m1.group(1)
-                if 'references' in heading_text.lower():
+                if re.search(r'references', heading_text, re.IGNORECASE):
                     in_references = True
                     final_latex_parts.append(f'\n\\begin{{sloppypar}}\n\\section*{{{_latex_escape(heading_text)}}}\n')
                 else:

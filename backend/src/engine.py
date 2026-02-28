@@ -39,6 +39,28 @@ def extract_text_from_docx(file_path):
             max_characters=2000,
             languages=["eng"]
         )
+
+        def get_native_tables(path):
+            try:
+                import docx
+                doc = docx.Document(path)
+                html_tables = []
+                for table in doc.tables:
+                    html = "<table>\n"
+                    for i, row in enumerate(table.rows):
+                        html += "<tr>\n"
+                        for cell in row.cells:
+                            tag = "th" if i == 0 else "td"
+                            html += f"<{tag}>{cell.text.strip()}</{tag}>"
+                        html += "</tr>\n"
+                    html += "</table>\n"
+                    html_tables.append(html)
+                return html_tables
+            except Exception:
+                return []
+
+        native_tables = get_native_tables(file_path)
+        native_table_idx = 0
         
         extracted_blocks = []
         import re
@@ -92,45 +114,60 @@ def extract_text_from_docx(file_path):
                 clean_text = re.sub(r'\[(\d+)\]', repl_footnote, clean_text)
 
             el_type = type(element).__name__
+            el_category = str(getattr(element.metadata, "category", "") or "")
+            if "Table" in el_type or "Table" in el_category:
+                 print(f"[debug_native] TABLE FOUND: {el_type} {el_category}")
+            
+            # Robust mapping for Titles/Headings
+            is_title = (el_type == "Title" or el_category == "Title" or 
+                        re.match(r'^(?:[A-Z]|[IVX]+)\.\s', clean_text) or 
+                        re.match(r'(?i)^Abstract$', clean_text))
 
-            # Regex Header Override
-            # If text matches ^[A-Z]\.\s, ^[IVX]+\.\s, or ^Abstract$ (case-insensitive)
-            if re.match(r'^(?:[A-Z]|[IVX]+)\.\s', clean_text) or re.match(r'(?i)^Abstract$', clean_text):
-                el_type = "Title"
-                if hasattr(element, "metadata"):
-                    element.metadata.category_depth = 1 # Force heading depth
-                
-            # Title Guard: first_page_lock
-            if el_type == "Title":
+            if is_title:
+                clean_text = re.sub(r'([a-z])s$', r'\1', clean_text) # Strip trailing OCR artifacts
                 depth = getattr(element.metadata, "category_depth", 0) if hasattr(element, "metadata") else 0
                 if depth == 0:
                     if not title_locked and "research paper" not in clean_text.lower():
                         title_locked = True
+                        extracted_blocks.append(f"@@H1@@{clean_text}@@END@@")
                     else:
-                        el_type = "NarrativeText" # Demote all subsequent locked titles or generic "Research paper" strings
-            
-            # Map structural elements to our tagging format
-            if el_type == "Title":
-                depth = getattr(element.metadata, "category_depth", 0) if hasattr(element, "metadata") else 0
-                
-                if depth == 0:
-                    extracted_blocks.append(f"@@H1@@{clean_text}@@END@@")
+                        extracted_blocks.append(clean_text)
                 elif depth == 1:
                     extracted_blocks.append(f"@@H2@@{clean_text}@@END@@")
                 else:
                     extracted_blocks.append(f"@@H3@@{clean_text}@@END@@")
+            
             elif el_type == "Table":
-                html_text = getattr(element.metadata, "text_as_html", "") if hasattr(element, "metadata") else ""
+                if native_table_idx < len(native_tables):
+                    html_text = native_tables[native_table_idx]
+                    native_table_idx += 1
+                else:
+                    html_text = getattr(element.metadata, "text_as_html", "") if hasattr(element, "metadata") else ""
+                
                 if html_text:
                     extracted_blocks.append(f"\n[TABLE_START]\n{html_text}\n[TABLE_END]\n")
                 else:
                     extracted_blocks.append(f"\n[TABLE_START]\n{clean_text}\n[TABLE_END]\n")
-            elif el_type in ["Header", "Footer"]:
-                continue
-            elif el_type == "ListItem":
-                extracted_blocks.append(f"@@LIST_ITEM@@{clean_text}@@END@@")
+            
             else:
-                extracted_blocks.append(clean_text)
+                # Attempt 2 Fallback: Proactive Table Search
+                # If chunking hid the table type, search for the text match
+                found_any_table = False
+                for idx in range(native_table_idx, len(native_tables)):
+                    # Get raw text from the native HTML (strip tags)
+                    raw_table_text = re.sub(r'<.*?>', '', native_tables[idx]).strip()
+                    # Squash everything to just alphanumerics for an aggressive match
+                    raw_match = re.sub(r'[^a-zA-Z0-9]', '', raw_table_text)[:30]
+                    clean_match = re.sub(r'[^a-zA-Z0-9]', '', clean_text)
+                    
+                    if raw_match and raw_match in clean_match:
+                        extracted_blocks.append(f"\n[TABLE_START]\n{native_tables[idx]}\n[TABLE_END]\n")
+                        native_table_idx = idx + 1
+                        found_any_table = True
+                        break
+                
+                if not found_any_table:
+                    extracted_blocks.append(clean_text)
                 
         # Append any un-injected footnotes to the body so they aren't completely lost
         for fn_num, fn_text in footnotes.items():
@@ -139,7 +176,7 @@ def extract_text_from_docx(file_path):
         full_text = '\n'.join(extracted_blocks)
         
         # Sanitization: Remove markers that shouldn't reach the formatter
-        full_text = full_text.replace('@@LIST_ITEM@@', '').replace('@@END@@', '')
+        #full_text = full_text.replace('@@LIST_ITEM@@', '').replace('@@END@@', '')
         
         return full_text
     except Exception as e:

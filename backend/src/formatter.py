@@ -109,63 +109,58 @@ def _apply_metadata_headings(body_text: str, headings_str: str, metadata: dict) 
     return body_text
 
 
+TEMP_DOCX    = os.path.join(DATA_DIR, "temp.docx")
+
 def generate_pdf(metadata, body_text):
     """
-    Injects metadata into template.tex (escaping LaTeX special chars and
-    converting heading markers), then compiles with pdflatex.
-    Returns raw PDF bytes on success, or raises RuntimeError on failure.
+    Converts TEMP_DOCX to LaTeX using Pandoc to preserve images, tables, and equations.
+    Strips the original preamble (Title/Authors/Abstract) and injects the cleaned body
+    into template.tex with AI-verified metadata.
     """
     try:
+        # Step 1: Run Pandoc on the original DOCX to generate a LaTeX body
+        pandoc_out = os.path.join(DATA_DIR, "body_pandoc.tex")
+        subprocess.run(
+            ["pandoc", TEMP_DOCX, "-o", pandoc_out, "--extract-media=media"],
+            cwd=DATA_DIR,
+            capture_output=True,
+            check=True
+        )
+
+        with open(pandoc_out, "r", encoding="utf-8") as f:
+            pandoc_body = f.read()
+
+        # Fix longtable for IEEE 2-column compatibility
+        # Pandoc generates longtable which crashes in \twocolumn mode.
+        pandoc_body = re.sub(r'\\begin\{longtable\}\[.*?\]', r'\\begin{table*}[htbp]\n\\centering\n\\begin{tabular}', pandoc_body)
+        pandoc_body = pandoc_body.replace(r'\end{longtable}', r'\end{tabular}' + '\n' + r'\end{table*}')
+        pandoc_body = re.sub(r'\\end(?:first)?head', '', pandoc_body)
+        pandoc_body = re.sub(r'\\end(?:last)?foot', '', pandoc_body)
+
+        # Step 2: Strip Preamble (Title, Authors, Abstract) to prevent duplication
+        # We look for the first Introduction section to cut the string.
+        intro_match = re.search(r'\\(?:sub)?section\*?\{[^{}]*Introduction[^{}]*\}', pandoc_body, re.IGNORECASE)
+        if intro_match:
+            pandoc_body = pandoc_body[intro_match.start():]
+        else:
+            # Fallback: look for the first section after the Abstract
+            abstract_text = metadata.get('abstract', '').strip()
+            # Since pandoc wraps text, a direct string match is hard. We just take everything if no intro.
+            pass
+
+        # Step 3: Read and populate template.tex
         with open(TEMPLATE_TEX, "r", encoding="utf-8") as f:
             tex_content = f.read()
 
-        # Escape metadata fields, convert body headings to LaTeX sections
         tex_content = tex_content.replace("[[TITLE]]",    _latex_escape(metadata.get('title',    'Untitled')))
         tex_content = tex_content.replace("[[AUTHORS]]",  _latex_escape(metadata.get('authors',  'Anonymous')))
         tex_content = tex_content.replace("[[ABSTRACT]]", _latex_escape(metadata.get('abstract', '')))
-        # Tag known section headings using LLM-extracted list, filtered against title/authors
-        headings_str = metadata.get('headings', '')
-        tagged_body  = _apply_metadata_headings(body_text, headings_str, metadata)
-
-        # ── Strip Preamble ──────────────────────────────────────────────
-        # Find the first real section marker. The naive way (find the first @@H1@@)
-        # fails if a DOCX style spuriously tagged the title or author line as a heading.
-        # Instead, we look for 'Introduction' or the first LLM-extracted heading.
-        cut_index = -1
-        intro_match = re.search(r'@@H[123]@@(I\.?\s*)?Introduction@@END@@', tagged_body, re.IGNORECASE)
-        if intro_match:
-            cut_index = intro_match.start()
-        else:
-            # Fallback: cut at the first marker that comes AFTER the abstract text
-            # (to avoid cutting at a spurious title marker)
-            abstract_text = metadata.get('abstract', '').strip()
-            if abstract_text and abstract_text in tagged_body:
-                after_abs = tagged_body.find(abstract_text) + len(abstract_text)
-                first_marker = tagged_body.find('@@H', after_abs)
-                if first_marker != -1:
-                    cut_index = first_marker
-            else:
-                # Last resort: just cut at the first marker
-                cut_index = tagged_body.find('@@H')
-
-        if cut_index > 0:
-            tagged_body = tagged_body[cut_index:]
-
-        # Finally, strip any hardcoded Roman numerals from the tagged headings
-        # because \section{} generates its own Roman numerals.
-        # Matches @@H1@@ I. Introduction @@END@@  ->  @@H1@@ Introduction @@END@@
-        tagged_body = re.sub(
-            r'(@@H[123]@@)\s*(?:[IVXLCDM]+\.|[0-9]+\.)\s*(.*?)(@@END@@)',
-            r'\1\2\3',
-            tagged_body,
-            flags=re.IGNORECASE
-        )
-
-        tex_content = tex_content.replace("[[BODY]]", _convert_headings(tagged_body))
+        tex_content = tex_content.replace("[[BODY]]", pandoc_body)
 
         with open(OUTPUT_TEX, "w", encoding="utf-8") as f:
             f.write(tex_content)
 
+        # Step 4: Compile the PDF
         result = subprocess.run(
             ["pdflatex", "-interaction=nonstopmode", OUTPUT_TEX],
             cwd=DATA_DIR,
@@ -189,6 +184,8 @@ def generate_pdf(metadata, body_text):
 
         raise RuntimeError("pdflatex ran but produced no output.pdf")
 
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Pandoc Error: {e.stderr.decode(errors='replace')}") from e
     except RuntimeError:
         raise
     except Exception as e:

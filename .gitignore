@@ -19,3 +19,16 @@ frontend/coverage/
 # --- Environment Secrets ---
 .env*
 !.env.example
+# --- LaTeX and Data Artifacts ---
+backend/data/*.aux
+backend/data/*.log
+backend/data/*.pdf
+backend/data/output.tex
+backend/data/temp.docx
+backend/data/media/
+backend/data/body_pandoc.tex
+backend/data/pandoc_body.tex
+backend/data/pandoc_standalone.tex
+backend/data/test_*
+backend/data/test_table.tex
+backend/data/test_script.py

@@ -149,13 +149,23 @@ TEXT:
         
         found_headings = []
         
+        # 1.5 Extract explicitly tagged headings from DOCX
+        tagged_pattern = re.compile(r'@@H[123]@@(.*?)@@END@@')
+        tagged_headings = tagged_pattern.findall(safe_text)
+        if tagged_headings:
+            found_headings.extend(tagged_headings)
+        
+        # Strip tags from safe_text to allow other heuristics to work correctly
+        clean_safe_text = re.sub(r'@@H[123]@@(.*?)@@END@@', r'\1', safe_text)
+        
         # 2. Look for explicit Roman Numerals (IEEE standard) if they survived extraction
-        explicit_pattern = re.compile(r'^(?:[IVXLCDM]+|[A-Z]|\d+)\.\s+[A-Z].+', re.MULTILINE)
-        found_headings = explicit_pattern.findall(safe_text)
+        if not found_headings:
+            explicit_pattern = re.compile(r'^(?:[IVXLCDM]+|[A-Z]|\d+)\.\s+[A-Z].+', re.MULTILINE)
+            found_headings = explicit_pattern.findall(clean_safe_text)
         
         # 3. If numbers were stripped, use Spatial Heuristics
         if not found_headings:
-            for line in safe_text.split('\n'):
+            for line in clean_safe_text.split('\n'):
                 line = line.strip()
                 # A heading is usually short, capitalized, and doesn't end in punctuation.
                 # We strictly filter out emails (@) and common affiliation words.
@@ -284,14 +294,14 @@ def get_semantic_hash(text):
 def _check_ollama():
     try:
         ollama.list()
-        print(f"[N.O.V.A.] ✅ Ollama is reachable. Using model: '{OLLAMA_MODEL}'")
+        print(f"[N.O.V.A.] [OK] Ollama is reachable. Using model: '{OLLAMA_MODEL}'")
         # Check if the model is actually pulled
         models = [m['model'] for m in ollama.list().get('models', [])]
         if not any(OLLAMA_MODEL in m for m in models):
-            print(f"[N.O.V.A.] ⚠️  Model '{OLLAMA_MODEL}' is NOT pulled yet!")
-            print(f"[N.O.V.A.] ⚠️  Run:  ollama pull {OLLAMA_MODEL}")
+            print(f"[N.O.V.A.] [WARN] Model '{OLLAMA_MODEL}' is NOT pulled yet!")
+            print(f"[N.O.V.A.] [WARN] Run:  ollama pull {OLLAMA_MODEL}")
     except Exception as e:
-        print(f"[N.O.V.A.] ⚠️  Ollama is NOT reachable: {e}")
-        print("[N.O.V.A.] ⚠️  Start Ollama with:  ollama serve")
+        print(f"[N.O.V.A.] [WARN] Ollama is NOT reachable: {e}")
+        print("[N.O.V.A.] [WARN] Start Ollama with:  ollama serve")
 
 _check_ollama()

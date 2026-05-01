@@ -96,7 +96,7 @@ async def fix_abstract(request: AbstractRequest):
         # Tier 1: exact normalized match
         if norm_abstract in norm_raw:
             new_raw_text = norm_raw.replace(norm_abstract, norm_fixed, 1)
-            print("[N.O.V.A.] fix-abstract: ✅ Tier 1 (exact match) succeeded")
+            print("[N.O.V.A.] fix-abstract: [OK] Tier 1 (exact match) succeeded")
 
         # Tier 2: anchor on first 200 chars
         if new_raw_text is None:
@@ -104,7 +104,7 @@ async def fix_abstract(request: AbstractRequest):
             idx = norm_raw.find(anchor)
             if idx >= 0:
                 new_raw_text = norm_raw[:idx] + norm_fixed + norm_raw[idx + len(norm_abstract):]
-                print("[N.O.V.A.] fix-abstract: ✅ Tier 2 (200-char anchor) succeeded")
+                print("[N.O.V.A.] fix-abstract: [OK] Tier 2 (200-char anchor) succeeded")
 
         # Tier 3: anchor on first 80 chars
         if new_raw_text is None:
@@ -112,12 +112,12 @@ async def fix_abstract(request: AbstractRequest):
             idx = norm_raw.find(anchor)
             if idx >= 0:
                 new_raw_text = norm_raw[:idx] + norm_fixed + norm_raw[idx + len(norm_abstract):]
-                print("[N.O.V.A.] fix-abstract: ✅ Tier 3 (80-char anchor) succeeded")
+                print("[N.O.V.A.] fix-abstract: [OK] Tier 3 (80-char anchor) succeeded")
 
         # Tier 4: guaranteed fallback — appends fixed abstract so the hash always
         # differs when the LLM made changes (wrong section, but different hash = correct)
         if new_raw_text is None:
-            print("[N.O.V.A.] fix-abstract: ⚠️  All tiers failed — using fallback concatenation")
+            print("[N.O.V.A.] fix-abstract: [WARN] All tiers failed — using fallback concatenation")
             new_raw_text = norm_raw + "\n" + norm_fixed if llm_changed else norm_raw
 
 

@@ -210,6 +210,8 @@ def _strip_minipage_wrappers(text: str) -> str:
         lambda m: m.group(1).strip(),
         text, flags=re.DOTALL
     )
+    # Strip raggedright added by Pandoc which redefines \\ inside tabularx X columns
+    text = text.replace(r'\raggedright', '')
     return text
 
 def _fix_pseudo_tables(text: str) -> str:
@@ -262,7 +264,13 @@ def _fix_pseudo_tables(text: str) -> str:
         res += '\\end{tabularx}\n\\end{table*}\n'
         return res
 
-    return re.sub(r'\\begin\{quote\}\s*(.*?\\textbf\{Table\s+\d+\}.*?)\\end\{quote\}', replacer, text, flags=re.DOTALL)
+    def wrapper(match):
+        content = match.group(1)
+        if r'\textbf{Table' not in content:
+            return match.group(0)
+        return replacer(match)
+
+    return re.sub(r'\\begin\{quote\}(.*?)\\end\{quote\}', wrapper, text, flags=re.DOTALL)
 
 
 def _fix_longtable(body: str) -> str:
@@ -547,11 +555,13 @@ def generate_pdf(metadata, body_text):
             
         pandoc_body = re.sub(r'\\includegraphics(\[.*?\])?\{((?:media[/\\])?[^}]+)\}', path_replacer, pandoc_body)
 
-        # Fix pseudo-tables (like Table 3) that Pandoc extracted as text blockquotes
-        pandoc_body = _fix_pseudo_tables(pandoc_body)
-
         # Fix longtable for IEEE 2-column compatibility
         pandoc_body = _fix_longtable(pandoc_body)
+        
+        # Fix pseudo-tables (like Table 3) that Pandoc extracted as text blockquotes
+        # Run this AFTER _fix_longtable so we don't accidentally match \begin{quote} blocks
+        # that Pandoc puts inside longtable cells (which _fix_longtable strips out).
+        pandoc_body = _fix_pseudo_tables(pandoc_body)
         
         # Fix figure environments
         pandoc_body = _fix_figure_envs(pandoc_body)

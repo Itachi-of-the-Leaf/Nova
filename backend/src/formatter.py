@@ -234,15 +234,15 @@ def _fix_pseudo_tables(text: str) -> str:
         num_cols = len(headers)
         if num_cols < 2: return match.group(0)
         
-        colspec = '{' + ('X' * num_cols) + '}'
+        colspec = '{|' + '|'.join(['X'] * num_cols) + '|}'
         # Use table* so it spans both columns
         res = f'\\begin{{table*}}[htbp]\n\\centering\n\\caption{{{table_label}: {caption}}}\n'
-        res += f'\\begin{{tabularx}}{{\\textwidth}}{colspec}\n\\toprule\n'
-        res += ' & '.join(headers) + ' \\\\\n\\midrule\n'
+        res += f'\\begin{{tabularx}}{{\\textwidth}}{colspec}\n\\hline\n'
+        res += ' & '.join(headers) + ' \\\\\n\\hline\n'
         
         for line in lines[3:]:
             if re.match(r'^\d+\.\s+', line):
-                res += f'\\multicolumn{{{num_cols}}}{{l}}{{\\textbf{{{line}}}}} \\\\\n'
+                res += f'\\multicolumn{{{num_cols}}}{{|l|}}{{\\textbf{{{line}}}}} \\\\\n\\hline\n'
                 continue
             if num_cols == 3:
                 parts = line.rsplit(' ', 1)
@@ -254,19 +254,19 @@ def _fix_pseudo_tables(text: str) -> str:
                         col1, col2 = words[0], words[1]
                     else:
                         col1, col2 = '', rest
-                    res += f'{col1} & {col2} & {num} \\\\\n'
+                    res += f'{col1} & {col2} & {num} \\\\\n\\hline\n'
                 else:
-                    res += f'\\multicolumn{{{num_cols}}}{{l}}{{{line}}} \\\\\n'
+                    res += f'\\multicolumn{{{num_cols}}}{{|l|}}{{{line}}} \\\\\n\\hline\n'
             else:
-                res += f'\\multicolumn{{{num_cols}}}{{l}}{{{line}}} \\\\\n'
-        res += '\\bottomrule\n\\end{tabularx}\n\\end{table*}\n'
+                res += f'\\multicolumn{{{num_cols}}}{{|l|}}{{{line}}} \\\\\n\\hline\n'
+        res += '\\end{tabularx}\n\\end{table*}\n'
         return res
 
     return re.sub(r'\\begin\{quote\}\s*(.*?\\textbf\{Table\s+\d+\}.*?)\\end\{quote\}', replacer, text, flags=re.DOTALL)
 
 
 def _fix_longtable(body: str) -> str:
-    """Convert longtable environments to table/table* + tabularx, safe for IEEE 2-col."""
+    """Convert longtable environments to table/table* + tabularx with full grid lines."""
     def replacer(match):
         content = match.group(0)
 
@@ -314,15 +314,21 @@ def _fix_longtable(body: str) -> str:
         # ── Strip minipage/quote wrappers Pandoc adds inside cells ───────────
         inner_content = _strip_minipage_wrappers(inner_content)
 
-        # ── Build tabularx environment ────────────────────────────────────────
+        # ── Build tabularx environment with full grid lines ───────────────────
         is_wide   = num_cols > 2
         table_env = "table*" if is_wide else "table"
-        colspec   = "{" + ("X" * num_cols) + "}"
+        colspec   = "{|" + "|".join(["X"] * num_cols) + "|}"
         width_arg = r"{\textwidth}" if is_wide else r"{\columnwidth}"
 
         inner_content = inner_content.strip()
-        if r'\toprule' in inner_content and not inner_content.endswith(r'\bottomrule'):
-            inner_content += '\n\\bottomrule'
+        
+        # Replace booktabs rules with \hline
+        inner_content = inner_content.replace(r'\toprule', r'\hline')
+        inner_content = inner_content.replace(r'\midrule', r'\hline')
+        inner_content = inner_content.replace(r'\bottomrule', r'\hline')
+        
+        # Add \hline between rows (after every \\ that doesn't already have \hline)
+        inner_content = re.sub(r'\\\\(?!\s*\\hline)', r'\\\\ \n\\hline', inner_content)
 
         res  = f"\\begin{{{table_env}}}[htbp]\n\\centering\n"
         if caption:
@@ -560,8 +566,23 @@ def generate_pdf(metadata, body_text):
         with open(TEMPLATE_TEX, "r", encoding="utf-8") as f:
             tex_content = f.read()
 
+        def _format_authors(authors_str):
+            if not authors_str or authors_str == 'Anonymous':
+                return '\\IEEEauthorblockN{Anonymous}'
+            # Split by comma or 'and'
+            parts = re.split(r',\s*(?:and\s+)?|\s+and\s+', authors_str)
+            names = [p.strip() for p in parts if p.strip()]
+            if not names:
+                return '\\IEEEauthorblockN{Anonymous}'
+            
+            blocks = []
+            for name in names:
+                blocks.append(f'\\IEEEauthorblockN{{{_latex_escape(name)}}}')
+                
+            return ' \\and\n'.join(blocks)
+
         tex_content = tex_content.replace("[[TITLE]]",    _latex_escape(metadata.get('title',    'Untitled')))
-        tex_content = tex_content.replace("[[AUTHORS]]",  _latex_escape(metadata.get('authors',  'Anonymous')))
+        tex_content = tex_content.replace("[[AUTHORS]]",  _format_authors(metadata.get('authors', 'Anonymous')))
         tex_content = tex_content.replace("[[ABSTRACT]]", _latex_escape(metadata.get('abstract', '')))
         
         # Ensure we do NOT escape pandoc_body, as it is already valid LaTeX

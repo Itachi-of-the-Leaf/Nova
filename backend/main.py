@@ -186,33 +186,19 @@ async def download_docx(req: GenerateRequest):
         def _build_docx() -> bytes:
             import docx as _docx
             import io
-            from docx.shared import Pt
-            from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-            doc = _docx.Document()
+            # Open the original document to preserve all images, tables, and formatting
+            doc = _docx.Document(TEMP_DOCX)
 
-            # Title
-            t = doc.add_heading(req.metadata.get('title', 'Untitled'), level=0)
-            t.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-            # Authors
-            a = doc.add_paragraph(req.metadata.get('authors', ''))
-            a.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            a.runs[0].italic = True if a.runs else None
-
-            # Abstract
-            doc.add_heading('Abstract', level=1)
-            doc.add_paragraph(req.metadata.get('abstract', ''))
-
-            # Body
-            doc.add_heading('Manuscript Body', level=1)
-            doc.add_paragraph(req.raw_text)
-
-            # References
-            refs = req.metadata.get('references', '')
-            if refs:
-                doc.add_heading('References', level=1)
-                doc.add_paragraph(refs)
+            # Try to patch the abstract if possible, as it might have been fixed by AI
+            new_abstract = req.metadata.get('abstract', '')
+            if new_abstract:
+                for i, p in enumerate(doc.paragraphs):
+                    if 'abstract' in p.text.lower() and len(p.text) < 50:
+                        # Found the abstract heading, replace the next paragraph
+                        if i + 1 < len(doc.paragraphs):
+                            doc.paragraphs[i+1].text = new_abstract
+                        break
 
             buf = io.BytesIO()
             doc.save(buf)

@@ -3,6 +3,8 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
 \usepackage[utf8]{inputenc}
+\DeclareUnicodeCharacter{2032}{'}
+\DeclareUnicodeCharacter{2033}{''}
 \usepackage{alphabeta}
 
 % Pandoc required packages
@@ -16,6 +18,19 @@
 \usepackage{hyperref}
 \usepackage{bookmark}
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{}
+
+% Added for IEEE floats, tables, algorithms, and diagrams
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{tikz}
+\providecommand{\ul}[1]{\underline{#1}}
+
 \makeatletter
 \newsavebox\pandoc@box
 \newcommand*\pandocbounded[1]{% scales image to fit in text height/width

@@ -111,6 +111,120 @@ def _apply_metadata_headings(body_text: str, headings_str: str, metadata: dict) 
 
 TEMP_DOCX    = os.path.join(DATA_DIR, "temp.docx")
 
+def _fix_longtable(body: str) -> str:
+    # A stateful parser to convert longtable to table + tabular
+    def replacer(match):
+        content = match.group(0)
+        # Extract column spec
+        colspec_match = re.search(r'\\begin\{longtable\}\[.*?\](\{.*?\})', content)
+        if not colspec_match:
+            colspec_match = re.search(r'\\begin\{longtable\}(\{.*?\})', content)
+        colspec = colspec_match.group(1) if colspec_match else "{l}"
+        
+        # We will determine is_wide and table_env based on inner content count instead
+        
+        # Extract caption
+        caption = ""
+        caption_match = re.search(r'(\\caption\{.*?\})', content, re.DOTALL)
+        if caption_match:
+            caption = caption_match.group(1)
+            # Remove caption from content
+            content = content.replace(caption_match.group(0), "")
+            
+        # Strip longtable headers and footers
+        content = re.sub(r'\\endfirsthead', '', content)
+        content = re.sub(r'\\endhead', '', content)
+        content = re.sub(r'\\endfoot', '', content)
+        content = re.sub(r'\\endlastfoot', '', content)
+        
+        # Get just the inner rows by stripping begin and end tags
+        inner_content = re.sub(r'\\begin\{longtable\}(\[.*?\])?\{.*?\}', '', content)
+        inner_content = re.sub(r'\\end\{longtable\}', '', inner_content)
+        
+        # Dynamically count columns using the first data row's & delimiters
+        first_row_match = re.search(r'^.*?&.*?\\\\', inner_content, re.MULTILINE)
+        if first_row_match:
+            num_cols = first_row_match.group(0).count('&') + 1
+        else:
+            num_cols = 1
+            
+        # Determine if table is wide
+        is_wide = num_cols > 2
+        table_env = "table*" if is_wide else "table"
+        
+        # Create a clean tabularx column spec, forcing equal widths that span the page
+        simple_colspec = "{" + ("X" * num_cols) + "}"
+        width_arg = r"{\textwidth}" if is_wide else r"{\columnwidth}"
+        
+        # Reconstruct using tabularx to perfectly balance text wrapping across the full width
+        res = f"\\begin{{{table_env}}}[htbp]\n\\centering\n"
+        if caption:
+            res += f"{caption}\n"
+        res += f"\\begin{{tabularx}}{width_arg}{simple_colspec}\n"
+        res += inner_content.strip() + "\n"
+        res += f"\\end{{tabularx}}\n\\end{{{table_env}}}"
+        return res
+
+    return re.sub(r'\\begin\{longtable\}.*?\\end\{longtable\}', replacer, body, flags=re.DOTALL)
+
+
+def _fix_figure_envs(body: str) -> str:
+    # Ensure figures have [htbp] and \centering
+    def replacer(match):
+        inner = match.group(1)
+        # Extract caption if any
+        caption_match = re.search(r'\\caption\{.*?\}', inner, re.DOTALL)
+        caption = caption_match.group(0) if caption_match else ""
+        if caption:
+            inner = inner.replace(caption, "")
+            
+        # Make sure graphics are centered
+        if r'\centering' not in inner:
+            inner = r'\centering' + '\n' + inner.strip()
+            
+        # Reconstruct with caption below
+        res = "\\begin{figure}[htbp]\n"
+        res += inner.strip() + "\n"
+        if caption:
+            res += f"{caption}\n"
+        res += "\\end{figure}"
+        return res
+        
+    body = re.sub(r'\\begin\{figure\}(?:\[.*?\])?(.*?)\\end\{figure\}', replacer, body, flags=re.DOTALL)
+    
+    # Also wrap bare includegraphics not inside a figure
+    def bare_replacer(match):
+        # We can't easily know if it's inside a figure with regex, 
+        # but since we just normalized all figures, we can do a negative lookbehind/lookahead if we were careful.
+        # A simpler way is to just let Pandoc handle it, as Pandoc usually wraps images in figures if they are paragraphs.
+        # For inline images, wrapping them in float breaks the text. So let's skip wrapping bare graphics for now.
+        return match.group(0)
+        
+    return body
+
+
+def _strip_preamble(body: str, metadata: dict) -> str:
+    strategies = [
+        r'\\section\*?\{',
+        r'\\subsection\*?\{',
+        r'\\section\*?\{[IVX]+\.',
+    ]
+    
+    # First try to find abstract end if Pandoc generated one
+    abstract_end_match = re.search(r'\\end\{abstract\}', body)
+    if abstract_end_match:
+         return body[abstract_end_match.end():].strip()
+         
+    # Else try section headings
+    for pattern in strategies:
+        m = re.search(pattern, body)
+        if m:
+            return body[m.start():].strip()
+            
+    # Fallback, just return as is
+    return body
+
+
 def generate_pdf(metadata, body_text):
     """
     Converts TEMP_DOCX to LaTeX using Pandoc to preserve images, tables, and equations.
@@ -120,8 +234,9 @@ def generate_pdf(metadata, body_text):
     try:
         # Step 1: Run Pandoc on the original DOCX to generate a LaTeX body
         pandoc_out = os.path.join(DATA_DIR, "body_pandoc.tex")
+        media_dir = os.path.join(DATA_DIR, "media")
         subprocess.run(
-            ["pandoc", TEMP_DOCX, "-o", pandoc_out, "--extract-media=media"],
+            ["pandoc", TEMP_DOCX, "-o", pandoc_out, f"--extract-media={media_dir}", "--wrap=none"],
             cwd=DATA_DIR,
             capture_output=True,
             check=True
@@ -130,23 +245,25 @@ def generate_pdf(metadata, body_text):
         with open(pandoc_out, "r", encoding="utf-8") as f:
             pandoc_body = f.read()
 
+        # Fix image paths to be absolute
+        # Pandoc writes \includegraphics{media/image1.png} or similar.
+        # We need absolute paths for pdflatex.
+        def path_replacer(m):
+            opt = m.group(1) or ""
+            rel_path = m.group(2)
+            abs_path = os.path.join(DATA_DIR, rel_path).replace("\\", "/")
+            return f"\\pandocbounded{{\\includegraphics{opt}{{{abs_path}}}}}"
+            
+        pandoc_body = re.sub(r'\\includegraphics(\[.*?\])?\{((?:media[/\\])?[^}]+)\}', path_replacer, pandoc_body)
+
         # Fix longtable for IEEE 2-column compatibility
-        # Pandoc generates longtable which crashes in \twocolumn mode.
-        pandoc_body = re.sub(r'\\begin\{longtable\}\[.*?\]', r'\\begin{table*}[htbp]\n\\centering\n\\begin{tabular}', pandoc_body)
-        pandoc_body = pandoc_body.replace(r'\end{longtable}', r'\end{tabular}' + '\n' + r'\end{table*}')
-        pandoc_body = re.sub(r'\\end(?:first)?head', '', pandoc_body)
-        pandoc_body = re.sub(r'\\end(?:last)?foot', '', pandoc_body)
+        pandoc_body = _fix_longtable(pandoc_body)
+        
+        # Fix figure environments
+        pandoc_body = _fix_figure_envs(pandoc_body)
 
         # Step 2: Strip Preamble (Title, Authors, Abstract) to prevent duplication
-        # We look for the first Introduction section to cut the string.
-        intro_match = re.search(r'\\(?:sub)?section\*?\{[^{}]*Introduction[^{}]*\}', pandoc_body, re.IGNORECASE)
-        if intro_match:
-            pandoc_body = pandoc_body[intro_match.start():]
-        else:
-            # Fallback: look for the first section after the Abstract
-            abstract_text = metadata.get('abstract', '').strip()
-            # Since pandoc wraps text, a direct string match is hard. We just take everything if no intro.
-            pass
+        pandoc_body = _strip_preamble(pandoc_body, metadata)
 
         # Step 3: Read and populate template.tex
         with open(TEMPLATE_TEX, "r", encoding="utf-8") as f:
@@ -155,6 +272,8 @@ def generate_pdf(metadata, body_text):
         tex_content = tex_content.replace("[[TITLE]]",    _latex_escape(metadata.get('title',    'Untitled')))
         tex_content = tex_content.replace("[[AUTHORS]]",  _latex_escape(metadata.get('authors',  'Anonymous')))
         tex_content = tex_content.replace("[[ABSTRACT]]", _latex_escape(metadata.get('abstract', '')))
+        
+        # Ensure we do NOT escape pandoc_body, as it is already valid LaTeX
         tex_content = tex_content.replace("[[BODY]]", pandoc_body)
 
         with open(OUTPUT_TEX, "w", encoding="utf-8") as f:

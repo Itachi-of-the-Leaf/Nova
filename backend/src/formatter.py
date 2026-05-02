@@ -188,7 +188,7 @@ def _count_longtable_cols(longtable_text: str) -> int:
                 res.append(char)
     cleaned = "".join(res)
     col_letters = re.sub(r'[@!><|]', '', cleaned)
-    col_letters = re.sub(r'[^lcrmbjXLRCJS]', '', col_letters)
+    col_letters = re.sub(r'[^lcrmbjXLRCJSpw]', '', col_letters)
     return max(len(col_letters), 1)
 
 
@@ -337,16 +337,18 @@ def _strip_preamble(body: str, metadata: dict) -> str:
     return body
 
 
-
-def _linkify_citations(body: str) -> str:
+def _linkify_citations(body: str, ref_list: list) -> str:
     """
-    Post-process Pandoc LaTeX body so that:
-      • [N] citation markers in body text → \\hyperref[ref:N]{[N]}
-      • Reference entries in the References section get \\label{ref:N}
-
-    The \\hyperref package is already loaded in template.tex, so clicking [N]
-    in the generated PDF will jump to the matching reference entry.
+    Post-process Pandoc LaTeX body to standardize and link citations.
+    1. Replaces APA-style citations (Wang, 2014) in the text with IEEE [N].
+    2. Links [N] markers to the references section via \\hyperref.
+    3. Rebuilds the References section entirely using the verified ref_list
+       so that it is perfectly numbered and formatted.
     """
+    if not ref_list:
+        # Fallback if no structured references are available
+        return body
+
     # ── Split at the References section boundary ─────────────────────────────
     ref_section_re = re.compile(
         r'(\\(?:section|subsection)\*?\s*\{[^}]*[Rr]eferences[^}]*\})',
@@ -355,28 +357,48 @@ def _linkify_citations(body: str) -> str:
     ref_match = ref_section_re.search(body)
 
     if ref_match:
-        pre_refs     = body[:ref_match.start()]
-        ref_header   = ref_match.group(1)
-        post_refs    = body[ref_match.end():]
-
-        # ── Label reference entries ───────────────────────────────────────────
-        # Case A: [N] at start of line  →  \label{ref:N}[N]
-        def _add_label_bracket(m):
-            return f'\\label{{ref:{m.group(1)}}}[{m.group(1)}]'
-        labeled = re.sub(r'(?m)^\[(\d+)\]', _add_label_bracket, post_refs)
-
-        # Case B: N. or N) at start of line (if [N] form not found)
-        if labeled == post_refs:
-            def _add_label_numbered(m):
-                return f'\\label{{ref:{m.group(1)}}}{m.group(1)}{m.group(2)}'
-            labeled = re.sub(r'(?m)^(\d+)([.)]\s)', _add_label_numbered, post_refs)
-
-        refs_part = ref_header + labeled
+        pre_refs   = body[:ref_match.start()]
+        ref_header = ref_match.group(1)
     else:
-        pre_refs  = body
-        refs_part = ''
+        pre_refs   = body
+        ref_header = "\\section*{References}"
 
-    # ── Linkify [N] in body text (before references section) ─────────────────
+    # ── 1. Standardize APA Citations in Body Text ────────────────────────────
+    # Build a map of "LastName_Year" -> Number
+    ref_map = {}
+    for ref in ref_list:
+        m_year = re.search(r'\b(19|20)\d{2}\b', ref['text'])
+        if not m_year: continue
+        year = m_year.group(0)
+        
+        first_word = re.split(r'[,.]', ref['text'])[0].strip()
+        last_name = first_word.split()[-1] if first_word else ""
+        if last_name:
+            ref_map[f"{last_name}_{year}"] = ref['number']
+
+    def apa_replacer(match):
+        citation_text = match.group(0)
+        years = re.findall(r'\b(19|20)\d{2}\b', citation_text)
+        if not years: return citation_text
+        
+        numbers = []
+        for key, num in ref_map.items():
+            author, year = key.split('_')
+            # Check if author name AND year exist in this citation block
+            if author.lower() in citation_text.lower() and year in citation_text:
+                numbers.append(num)
+                
+        if numbers:
+            numbers = sorted(list(set(numbers)))
+            if len(numbers) == 1: return f"[{numbers[0]}]"
+            else: return "[" + ", ".join(str(n) for n in numbers) + "]"
+        return citation_text
+
+    # Replace (Author, Year) or Author et al. (Year)
+    pre_refs = re.sub(r'\([A-Za-z][^\)]*?(19|20)\d{2}[^\)]*?\)', apa_replacer, pre_refs)
+    pre_refs = re.sub(r'[A-Z][a-z]+(?:\s+et\s+al\.)?\s*\((19|20)\d{2}\)', apa_replacer, pre_refs)
+
+    # ── 2. Linkify [N] in body text ──────────────────────────────────────────
     def _make_link(m):
         n = m.group(1)
         return f'\\hyperref[ref:{n}]{{[{n}]}}'
@@ -390,7 +412,25 @@ def _linkify_citations(body: str) -> str:
         linked
     )
 
-    return linked + refs_part
+    # ── 3. Rebuild References Section ────────────────────────────────────────
+    # Completely rebuild references from the verified ref_list.
+    rebuilt_refs = [ref_header + "\n\n\\begin{itemize}"]
+    for ref in ref_list:
+        n = ref['number']
+        # Clean up any existing [N] or N. at the start of the text
+        clean_text = re.sub(r'^\[?\d+\]?[.)]?\s*', '', ref['text']).strip()
+        
+        # Escape LaTeX special chars using a quick local inline function
+        # since _latex_escape might not be globally available here
+        replacements = [('\\', r'\textbackslash{}'), ('&', r'\&'), ('%', r'\%'), ('$', r'\$'), ('#', r'\#'), ('_', r'\_'), ('{', r'\{'), ('}', r'\}'), ('~', r'\textasciitilde{}'), ('^', r'\textasciicircum{}')]
+        for char, escaped in replacements:
+            clean_text = clean_text.replace(char, escaped)
+            
+        item = f"\\item[\\label{{ref:{n}}}[{n}]] {clean_text}"
+        rebuilt_refs.append(item)
+    rebuilt_refs.append("\\end{itemize}")
+
+    return linked + "\n".join(rebuilt_refs)
 def _long_path(p: str) -> str:
     """Resolve Windows 8.3 short paths (e.g. ANIKET~1) to their full long form.
 
@@ -458,8 +498,8 @@ def generate_pdf(metadata, body_text):
         # Step 2: Strip Preamble (Title, Authors, Abstract) to prevent duplication
         pandoc_body = _strip_preamble(pandoc_body, metadata)
 
-        # Step 2b: Linkify [N] citations → clickable hyperlinks in the PDF
-        pandoc_body = _linkify_citations(pandoc_body)
+        # Step 2b: Standardize APA citations to IEEE [N], link them, and rebuild the References section
+        pandoc_body = _linkify_citations(pandoc_body, metadata.get('references_list', []))
 
 
         with open(TEMPLATE_TEX, "r", encoding="utf-8") as f:

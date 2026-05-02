@@ -4,9 +4,6 @@ import subprocess
 
 DATA_DIR     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
 TEMPLATE_TEX = os.path.join(DATA_DIR, "template.tex")
-OUTPUT_TEX   = os.path.join(DATA_DIR, "output.tex")
-OUTPUT_PDF   = os.path.join(DATA_DIR, "output.pdf")
-OUTPUT_LOG   = os.path.join(DATA_DIR, "output.log")
 
 
 def _latex_escape(text: str) -> str:
@@ -111,56 +108,174 @@ def _apply_metadata_headings(body_text: str, headings_str: str, metadata: dict) 
 
 TEMP_DOCX    = os.path.join(DATA_DIR, "temp.docx")
 
+def _extract_caption(text: str) -> tuple[str, str]:
+    r"""Extracts the first \caption{...} or \caption[...]{...} from text, handling nested braces.
+    Returns (caption_text, remaining_text)."""
+    m = re.search(r'\\caption\s*(?:\[[^\]]*\])?\s*\{', text)
+    if not m:
+        return "", text
+        
+    idx = m.start()
+    start_brace = m.end() - 1
+    
+    brace_count = 0
+    end_idx = -1
+    for i in range(start_brace, len(text)):
+        if text[i] == '{':
+            brace_count += 1
+        elif text[i] == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                end_idx = i
+                break
+                
+    if end_idx != -1:
+        caption = text[idx:end_idx+1]
+        remaining = text[:idx] + text[end_idx+1:]
+        return caption, remaining
+
+    return "", text
+
+
+def _count_longtable_cols(longtable_text: str) -> int:
+    """
+    Extract the column count from the \begin{longtable}[opt]{colspec} column spec.
+    This is far more reliable than counting & in rows, which breaks on multi-line
+    minipage cells that Pandoc generates.
+    """
+    # Find \begin{longtable} and advance past optional [...]
+    m = re.search(r'\\begin\{longtable\}', longtable_text)
+    if not m:
+        return 1
+    curr = m.end()
+    text = longtable_text
+    # Skip optional [...]
+    while curr < len(text) and text[curr].isspace(): curr += 1
+    if curr < len(text) and text[curr] == '[':
+        depth = 0
+        while curr < len(text):
+            if text[curr] == '[': depth += 1
+            elif text[curr] == ']':
+                depth -= 1
+                if depth == 0: curr += 1; break
+            curr += 1
+    # Skip whitespace then read the mandatory {...} colspec
+    while curr < len(text) and text[curr].isspace(): curr += 1
+    colspec = ""
+    if curr < len(text) and text[curr] == '{':
+        depth = 0
+        start = curr + 1
+        while curr < len(text):
+            if text[curr] == '{': depth += 1
+            elif text[curr] == '}':
+                depth -= 1
+                if depth == 0:
+                    colspec = text[start:curr]
+                    break
+            curr += 1
+    if not colspec:
+        return 1
+    # Strip everything inside balanced braces to avoid counting formatting commands
+    res = []
+    depth = 0
+    for char in colspec:
+        if char == '{':
+            depth += 1
+        elif char == '}':
+            depth -= 1
+        else:
+            if depth == 0:
+                res.append(char)
+    cleaned = "".join(res)
+    col_letters = re.sub(r'[@!><|]', '', cleaned)
+    col_letters = re.sub(r'[^lcrmbjXLRCJS]', '', col_letters)
+    return max(len(col_letters), 1)
+
+
+def _strip_minipage_wrappers(text: str) -> str:
+    r"""
+    Remove \begin{minipage}[...]{...} ... \end{minipage} wrappers and
+    \begin{quote} ... \end{quote} wrappers that Pandoc inserts inside table
+    cells. Keeps the inner content so table rows remain valid LaTeX.
+    """
+    # Strip minipage: \begin{minipage}[opt]{width} ... \end{minipage}
+    text = re.sub(
+        r'\\begin\{minipage\}(?:\[[^\]]*\])?\{[^}]*\}(.*?)\\end\{minipage\}',
+        lambda m: m.group(1).strip(),
+        text, flags=re.DOTALL
+    )
+    # Strip quote environments
+    text = re.sub(
+        r'\\begin\{quote\}(.*?)\\end\{quote\}',
+        lambda m: m.group(1).strip(),
+        text, flags=re.DOTALL
+    )
+    return text
+
+
 def _fix_longtable(body: str) -> str:
-    # A stateful parser to convert longtable to table + tabular
+    """Convert longtable environments to table/table* + tabularx, safe for IEEE 2-col."""
     def replacer(match):
         content = match.group(0)
-        # Extract column spec
-        colspec_match = re.search(r'\\begin\{longtable\}\[.*?\](\{.*?\})', content)
-        if not colspec_match:
-            colspec_match = re.search(r'\\begin\{longtable\}(\{.*?\})', content)
-        colspec = colspec_match.group(1) if colspec_match else "{l}"
+
+        # ── Extract column count BEFORE stripping \begin{longtable} ──────────
+        num_cols = _count_longtable_cols(content)
+
+        # ── Extract caption ───────────────────────────────────────────────────
+        caption, content = _extract_caption(content)
+
+        # ── Strip \begin{longtable}[...]{...} ────────────────────────────────
+        def strip_begin(text):
+            idx = text.find(r'\begin{longtable}')
+            if idx == -1: return text
+            curr = idx + len(r'\begin{longtable}')
+            while curr < len(text) and text[curr].isspace(): curr += 1
+            if curr < len(text) and text[curr] == '[':
+                d = 0
+                while curr < len(text):
+                    if text[curr] == '[': d += 1
+                    elif text[curr] == ']':
+                        d -= 1
+                        if d == 0: curr += 1; break
+                    curr += 1
+            while curr < len(text) and text[curr].isspace(): curr += 1
+            if curr < len(text) and text[curr] == '{':
+                d = 0
+                while curr < len(text):
+                    if text[curr] == '{': d += 1
+                    elif text[curr] == '}':
+                        d -= 1
+                        if d == 0: curr += 1; break
+                    curr += 1
+            return text[curr:]
+
+        inner_content = strip_begin(content)
+        inner_content = inner_content.replace(r'\end{longtable}', '')
+
+        # ── Clean up header/footer blocks from Pandoc ────────────────────────
+        # Remove redundant repeated headers and footers at the top of the longtable
+        inner_content = re.sub(r'(?:\\endfirsthead|\\endhead).*?\\endlastfoot\n?', '', inner_content, flags=re.DOTALL)
         
-        # We will determine is_wide and table_env based on inner content count instead
-        
-        # Extract caption
-        caption = ""
-        caption_match = re.search(r'(\\caption\{.*?\})', content, re.DOTALL)
-        if caption_match:
-            caption = caption_match.group(1)
-            # Remove caption from content
-            content = content.replace(caption_match.group(0), "")
-            
-        # Strip longtable headers and footers
-        content = re.sub(r'\\endfirsthead', '', content)
-        content = re.sub(r'\\endhead', '', content)
-        content = re.sub(r'\\endfoot', '', content)
-        content = re.sub(r'\\endlastfoot', '', content)
-        
-        # Get just the inner rows by stripping begin and end tags
-        inner_content = re.sub(r'\\begin\{longtable\}(\[.*?\])?\{.*?\}', '', content)
-        inner_content = re.sub(r'\\end\{longtable\}', '', inner_content)
-        
-        # Dynamically count columns using the first data row's & delimiters
-        first_row_match = re.search(r'^.*?&.*?\\\\', inner_content, re.MULTILINE)
-        if first_row_match:
-            num_cols = first_row_match.group(0).count('&') + 1
-        else:
-            num_cols = 1
-            
-        # Determine if table is wide
-        is_wide = num_cols > 2
+        # Remove \noalign{} which causes "! Misplaced \noalign." errors in tabularx
+        inner_content = inner_content.replace(r'\noalign{}', '')
+
+        # ── Strip minipage/quote wrappers Pandoc adds inside cells ───────────
+        inner_content = _strip_minipage_wrappers(inner_content)
+
+        # ── Build tabularx environment ────────────────────────────────────────
+        is_wide   = num_cols > 2
         table_env = "table*" if is_wide else "table"
-        
-        # Create a clean tabularx column spec, forcing equal widths that span the page
-        simple_colspec = "{" + ("X" * num_cols) + "}"
+        colspec   = "{" + ("X" * num_cols) + "}"
         width_arg = r"{\textwidth}" if is_wide else r"{\columnwidth}"
-        
-        # Reconstruct using tabularx to perfectly balance text wrapping across the full width
-        res = f"\\begin{{{table_env}}}[htbp]\n\\centering\n"
+
+        inner_content = inner_content.strip()
+        if r'\toprule' in inner_content and not inner_content.endswith(r'\bottomrule'):
+            inner_content += '\n\\bottomrule'
+
+        res  = f"\\begin{{{table_env}}}[htbp]\n\\centering\n"
         if caption:
             res += f"{caption}\n"
-        res += f"\\begin{{tabularx}}{width_arg}{simple_colspec}\n"
+        res += f"\\begin{{tabularx}}{width_arg}{colspec}\n"
         res += inner_content.strip() + "\n"
         res += f"\\end{{tabularx}}\n\\end{{{table_env}}}"
         return res
@@ -173,10 +288,7 @@ def _fix_figure_envs(body: str) -> str:
     def replacer(match):
         inner = match.group(1)
         # Extract caption if any
-        caption_match = re.search(r'\\caption\{.*?\}', inner, re.DOTALL)
-        caption = caption_match.group(0) if caption_match else ""
-        if caption:
-            inner = inner.replace(caption, "")
+        caption, inner = _extract_caption(inner)
             
         # Make sure graphics are centered
         if r'\centering' not in inner:
@@ -225,19 +337,46 @@ def _strip_preamble(body: str, metadata: dict) -> str:
     return body
 
 
+def _long_path(p: str) -> str:
+    """Resolve Windows 8.3 short paths (e.g. ANIKET~1) to their full long form.
+
+    pdflatex treats '~' as a LaTeX non-breaking space, so short paths like
+    C:/Users/ANIKET~1/... cause "I can't find file" fatal errors.
+    On non-Windows systems this is a no-op.
+    """
+    if os.name != 'nt':
+        return p
+    try:
+        import ctypes
+        buf = ctypes.create_unicode_buffer(512)
+        ctypes.windll.kernel32.GetLongPathNameW(p, buf, 512)
+        return buf.value or p
+    except Exception:
+        return p
+
+
 def generate_pdf(metadata, body_text):
     """
     Converts TEMP_DOCX to LaTeX using Pandoc to preserve images, tables, and equations.
     Strips the original preamble (Title/Authors/Abstract) and injects the cleaned body
     into template.tex with AI-verified metadata.
+
+    All intermediate/output files are written to a system temp directory so that
+    uvicorn's --reload file-watcher does NOT restart the server mid-request.
     """
+    import tempfile
+    import shutil
+
+    # Resolve to long path — Windows 8.3 short names contain '~' which is
+    # a special character in LaTeX and makes pdflatex unable to find files.
+    work_dir = _long_path(tempfile.mkdtemp(prefix="nova_pdf_"))
     try:
         # Step 1: Run Pandoc on the original DOCX to generate a LaTeX body
-        pandoc_out = os.path.join(DATA_DIR, "body_pandoc.tex")
-        media_dir = os.path.join(DATA_DIR, "media")
+        pandoc_out = os.path.join(work_dir, "body_pandoc.tex")
+        media_dir = os.path.join(work_dir, "media")
         subprocess.run(
             ["pandoc", TEMP_DOCX, "-o", pandoc_out, f"--extract-media={media_dir}", "--wrap=none"],
-            cwd=DATA_DIR,
+            cwd=work_dir,
             capture_output=True,
             check=True
         )
@@ -245,13 +384,12 @@ def generate_pdf(metadata, body_text):
         with open(pandoc_out, "r", encoding="utf-8") as f:
             pandoc_body = f.read()
 
-        # Fix image paths to be absolute
-        # Pandoc writes \includegraphics{media/image1.png} or similar.
-        # We need absolute paths for pdflatex.
+        # Fix image paths to be absolute (pointing into the temp media dir)
+        # Use _long_path to ensure no '~' in embedded LaTeX paths
         def path_replacer(m):
             opt = m.group(1) or ""
             rel_path = m.group(2)
-            abs_path = os.path.join(DATA_DIR, rel_path).replace("\\", "/")
+            abs_path = _long_path(os.path.join(work_dir, rel_path)).replace("\\", "/")
             return f"\\pandocbounded{{\\includegraphics{opt}{{{abs_path}}}}}"
             
         pandoc_body = re.sub(r'\\includegraphics(\[.*?\])?\{((?:media[/\\])?[^}]+)\}', path_replacer, pandoc_body)
@@ -276,30 +414,49 @@ def generate_pdf(metadata, body_text):
         # Ensure we do NOT escape pandoc_body, as it is already valid LaTeX
         tex_content = tex_content.replace("[[BODY]]", pandoc_body)
 
-        with open(OUTPUT_TEX, "w", encoding="utf-8") as f:
+        output_tex = os.path.join(work_dir, "output.tex")
+        with open(output_tex, "w", encoding="utf-8") as f:
             f.write(tex_content)
 
+        # Copy IEEEtran.cls into the work dir so pdflatex can find it
+        cls_src = os.path.join(DATA_DIR, "IEEEtran.cls")
+        if os.path.exists(cls_src):
+            shutil.copy2(cls_src, work_dir)
+
         # Step 4: Compile the PDF
+        # Pass just the filename so pdflatex doesn't see any '~' in the path.
+        # The cwd is already set to work_dir.
         result = subprocess.run(
-            ["pdflatex", "-interaction=nonstopmode", OUTPUT_TEX],
-            cwd=DATA_DIR,
+            ["pdflatex", "-interaction=nonstopmode", "output.tex"],
+            cwd=work_dir,
             capture_output=True,
         )
 
+        output_pdf = os.path.join(work_dir, "output.pdf")
+        output_log = os.path.join(work_dir, "output.log")
+        texput_log = os.path.join(work_dir, "texput.log")
+
+        # Check for the PDF FIRST — MiKTeX often returns non-zero exit codes
+        # for harmless warnings (e.g. "you have not checked for MiKTeX updates")
+        # even when the PDF was generated successfully.
+        if os.path.exists(output_pdf) and os.path.getsize(output_pdf) > 0:
+            with open(output_pdf, "rb") as f:
+                return f.read()
+
+        # PDF is missing — now extract the real error from the log
         if result.returncode != 0:
             log = ""
-            if os.path.exists(OUTPUT_LOG):
-                with open(OUTPUT_LOG, "r", encoding="utf-8", errors="replace") as f:
+            # pdflatex writes to output.log normally, but falls back to
+            # texput.log if it can't even open the input file.
+            log_path = output_log if os.path.exists(output_log) else texput_log
+            if os.path.exists(log_path):
+                with open(log_path, "r", encoding="utf-8", errors="replace") as f:
                     log = f.read()
             error_line = next(
                 (line for line in log.splitlines() if line.startswith("!")),
                 result.stderr.decode(errors="replace") or "Unknown LaTeX error"
             )
             raise RuntimeError(f"LaTeX compile error: {error_line}")
-
-        if os.path.exists(OUTPUT_PDF):
-            with open(OUTPUT_PDF, "rb") as f:
-                return f.read()
 
         raise RuntimeError("pdflatex ran but produced no output.pdf")
 
@@ -309,3 +466,6 @@ def generate_pdf(metadata, body_text):
         raise
     except Exception as e:
         raise RuntimeError(f"Formatter Error: {e}") from e
+    finally:
+        # Clean up the temp directory — never leave stale files
+        shutil.rmtree(work_dir, ignore_errors=True)

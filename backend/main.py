@@ -1,6 +1,8 @@
 import os
 import asyncio
 import json
+import tempfile
+import shutil
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
@@ -183,6 +185,12 @@ Verification: 100% Scientific Claim Integrity Confirmed.
 @app.post("/download/docx")
 async def download_docx(req: GenerateRequest):
     try:
+        if not os.path.exists(TEMP_DOCX):
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "No uploaded document found. Please upload a file first by going back to Step 1."}
+            )
+
         def _build_docx() -> bytes:
             import docx as _docx
             import io

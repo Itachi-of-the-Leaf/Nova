@@ -212,6 +212,58 @@ def _strip_minipage_wrappers(text: str) -> str:
     )
     return text
 
+def _fix_pseudo_tables(text: str) -> str:
+    """
+    Find quote environments containing pseudo-tables (e.g. Table 3) that Pandoc
+    failed to recognize as tables, and convert them to tabularx.
+    """
+    def replacer(match):
+        content = match.group(1)
+        # Remove any stray phantomsection or label macros from the content
+        content = re.sub(r'\\protect\\phantomsection\\label\{[^}]*\}\{\}', '', content)
+        
+        lines = [l.strip() for l in content.split('\n') if l.strip()]
+        if len(lines) < 4: return match.group(0)
+        
+        m_title = re.search(r'\\textbf\{(Table\s+\d+)\}', lines[0])
+        if not m_title: return match.group(0)
+        table_label = m_title.group(1)
+        
+        caption = lines[1]
+        headers = lines[2].split()
+        num_cols = len(headers)
+        if num_cols < 2: return match.group(0)
+        
+        colspec = '{' + ('X' * num_cols) + '}'
+        # Use table* so it spans both columns
+        res = f'\\begin{{table*}}[htbp]\n\\centering\n\\caption{{{table_label}: {caption}}}\n'
+        res += f'\\begin{{tabularx}}{{\\textwidth}}{colspec}\n\\toprule\n'
+        res += ' & '.join(headers) + ' \\\\\n\\midrule\n'
+        
+        for line in lines[3:]:
+            if re.match(r'^\d+\.\s+', line):
+                res += f'\\multicolumn{{{num_cols}}}{{l}}{{\\textbf{{{line}}}}} \\\\\n'
+                continue
+            if num_cols == 3:
+                parts = line.rsplit(' ', 1)
+                if len(parts) == 2 and parts[1].isdigit():
+                    num = parts[1]
+                    rest = parts[0]
+                    words = rest.split(' ', 1)
+                    if len(words) == 2 and words[0].istitle() and words[1] and words[1][0].istitle():
+                        col1, col2 = words[0], words[1]
+                    else:
+                        col1, col2 = '', rest
+                    res += f'{col1} & {col2} & {num} \\\\\n'
+                else:
+                    res += f'\\multicolumn{{{num_cols}}}{{l}}{{{line}}} \\\\\n'
+            else:
+                res += f'\\multicolumn{{{num_cols}}}{{l}}{{{line}}} \\\\\n'
+        res += '\\bottomrule\n\\end{tabularx}\n\\end{table*}\n'
+        return res
+
+    return re.sub(r'\\begin\{quote\}\s*(.*?\\textbf\{Table\s+\d+\}.*?)\\end\{quote\}', replacer, text, flags=re.DOTALL)
+
 
 def _fix_longtable(body: str) -> str:
     """Convert longtable environments to table/table* + tabularx, safe for IEEE 2-col."""
@@ -488,6 +540,9 @@ def generate_pdf(metadata, body_text):
             return f"\\pandocbounded{{\\includegraphics{opt}{{{abs_path}}}}}"
             
         pandoc_body = re.sub(r'\\includegraphics(\[.*?\])?\{((?:media[/\\])?[^}]+)\}', path_replacer, pandoc_body)
+
+        # Fix pseudo-tables (like Table 3) that Pandoc extracted as text blockquotes
+        pandoc_body = _fix_pseudo_tables(pandoc_body)
 
         # Fix longtable for IEEE 2-column compatibility
         pandoc_body = _fix_longtable(pandoc_body)

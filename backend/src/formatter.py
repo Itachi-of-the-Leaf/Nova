@@ -370,15 +370,45 @@ def _fix_figure_envs(body: str) -> str:
         
     body = re.sub(r'\\begin\{figure\}(?:\[.*?\])?(.*?)\\end\{figure\}', replacer, body, flags=re.DOTALL)
     
-    # Also wrap bare includegraphics not inside a figure
-    def bare_replacer(match):
-        # We can't easily know if it's inside a figure with regex, 
-        # but since we just normalized all figures, we can do a negative lookbehind/lookahead if we were careful.
-        # A simpler way is to just let Pandoc handle it, as Pandoc usually wraps images in figures if they are paragraphs.
-        # For inline images, wrapping them in float breaks the text. So let's skip wrapping bare graphics for now.
-        return match.group(0)
-        
-    return body
+    # Wrap bare includegraphics not inside a figure, bundling them with their captions
+    paragraphs = body.split('\n\n')
+    new_paragraphs = []
+    i = 0
+    while i < len(paragraphs):
+        p = paragraphs[i]
+        if r'\includegraphics' in p and r'\begin{figure}' not in p:
+            caption_p = None
+            merge_count = 0
+            
+            if r'\textbf{Fig.' in p:
+                caption_p = p
+                merge_count = 0
+            else:
+                if i + 1 < len(paragraphs) and r'\textbf{Fig.' in paragraphs[i+1]:
+                    caption_p = paragraphs[i+1]
+                    merge_count = 1
+                elif i + 2 < len(paragraphs) and r'\textbf{Fig.' in paragraphs[i+2] and r'\includegraphics' not in paragraphs[i+1]:
+                    caption_p = paragraphs[i+1] + '\n\n' + paragraphs[i+2]
+                    merge_count = 2
+                    
+            if caption_p is not None:
+                if merge_count == 0:
+                    combined = p
+                else:
+                    combined = p + '\n\n' + caption_p
+                res = f'\\begin{{figure}}[htbp]\n\\centering\n{combined}\n\\end{{figure}}'
+                new_paragraphs.append(res)
+                i += 1 + merge_count
+                continue
+                
+            res = f'\\begin{{figure}}[htbp]\n\\centering\n{p}\n\\end{{figure}}'
+            new_paragraphs.append(res)
+            i += 1
+        else:
+            new_paragraphs.append(p)
+            i += 1
+            
+    return '\n\n'.join(new_paragraphs)
 
 
 def _strip_preamble(body: str, metadata: dict) -> str:

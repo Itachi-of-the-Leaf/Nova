@@ -5,3 +5,4 @@ ollama
 sentence-transformers
 pydantic
 python-multipart
+requests

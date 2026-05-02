@@ -8,6 +8,8 @@ Thumbs.db
 *.py[cod]
 *$py.class
 backend/output.log
+venv/
+.venv/
 
 # --- Node / Frontend ---
 # We use '**/node_modules/' to catch it anywhere (standard monorepo practice)

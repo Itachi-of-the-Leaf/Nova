@@ -90,6 +90,7 @@ export function VerifyStep({ state, updateState, onNext }: { state: AppState, up
               refText={state.metadata.references}
               refList={refList}
               onChangeText={(v) => handleMetadataChange('references', v)}
+              onChangeList={(v: ReferenceEntry[]) => handleMetadataChange('references_list', v as any)}
             />
           </div>
 
@@ -129,18 +130,63 @@ function ReferencesPanel({
   refText,
   refList,
   onChangeText,
+  onChangeList,
 }: {
   refText: string;
   refList: ReferenceEntry[];
   onChangeText: (v: string) => void;
+  onChangeList: (v: ReferenceEntry[]) => void;
 }) {
   const [showRaw, setShowRaw] = useState(false);
+  const [verifying, setVerifying] = useState<Record<number, boolean>>({});
+  const [crossrefResults, setCrossrefResults] = useState<Record<number, any>>({});
 
   /** A reference is "good" if it has a year and is long enough to be real. */
   const getHealth = (text: string): 'good' | 'warn' => {
     const hasYear = /\b(19|20)\d{2}\b/.test(text);
     const isSubstantial = text.length > 40;
     return hasYear && isSubstantial ? 'good' : 'warn';
+  };
+
+  const handleVerify = async (ref: ReferenceEntry) => {
+    setVerifying(prev => ({ ...prev, [ref.number]: true }));
+    try {
+      // Use window.location.hostname if needed, or fallback to localhost
+      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:8000' 
+        : '';
+      const response = await fetch(`${baseUrl}/api/verify-citation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ citation: ref.text })
+      });
+      const data = await response.json();
+      setCrossrefResults(prev => ({ ...prev, [ref.number]: data }));
+    } catch (err) {
+      console.error(err);
+      setCrossrefResults(prev => ({ ...prev, [ref.number]: { error: 'Network error fetching Crossref.' } }));
+    } finally {
+      setVerifying(prev => ({ ...prev, [ref.number]: false }));
+    }
+  };
+
+  const handleAcceptCrossref = (ref: ReferenceEntry, data: any) => {
+    const formatted = `${data.author || 'Unknown'}. ${data.title || 'Unknown'}. DOI: ${data.doi || ''}`;
+    
+    // Update the parsed list
+    const newList = refList.map(r => r.number === ref.number ? { ...r, text: formatted } : r);
+    onChangeList(newList);
+
+    // Update the raw text blob
+    const newRefText = refText.replace(ref.text, formatted);
+    onChangeText(newRefText);
+
+    // Clear result
+    setCrossrefResults(prev => {
+      const next = { ...prev };
+      delete next[ref.number];
+      return next;
+    });
   };
 
   const goodCount = refList.filter((r) => getHealth(r.text) === 'good').length;
@@ -220,33 +266,96 @@ function ReferencesPanel({
           <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 custom-scrollbar">
             {refList.map((ref) => {
               const health = getHealth(ref.text);
+              const isVerifying = verifying[ref.number];
+              const crResult = crossrefResults[ref.number];
+
               return (
                 <div
                   key={ref.number}
-                  className={`flex items-start gap-3 px-3 py-2.5 transition-colors hover:bg-slate-50 ${
+                  className={`flex flex-col gap-2 px-3 py-2.5 transition-colors hover:bg-slate-50 ${
                     health === 'warn' ? 'bg-amber-50/50' : ''
                   }`}
                 >
-                  {/* Number badge */}
-                  <span
-                    className={`text-[10px] font-black shrink-0 px-1.5 py-0.5 rounded mt-0.5 ${
-                      health === 'good'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
-                    [{ref.number}]
-                  </span>
+                  <div className="flex items-start gap-3">
+                    {/* Number badge */}
+                    <span
+                      className={`text-[10px] font-black shrink-0 px-1.5 py-0.5 rounded mt-0.5 ${
+                        health === 'good'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      [{ref.number}]
+                    </span>
 
-                  {/* Reference text */}
-                  <p className="text-[11px] text-slate-700 leading-relaxed line-clamp-2 flex-1 min-w-0">
-                    {ref.text}
-                  </p>
+                    {/* Reference text */}
+                    <p className="text-[11px] text-slate-700 leading-relaxed flex-1 min-w-0">
+                      {ref.text}
+                    </p>
 
-                  {/* Status icon */}
-                  <span className="shrink-0 text-xs mt-0.5" title={health === 'good' ? 'Looks complete' : 'May be missing year or too short'}>
-                    {health === 'good' ? '✓' : '⚠'}
-                  </span>
+                    {/* Status icon / Verify Button */}
+                    <div className="shrink-0 flex items-center gap-2 mt-0.5">
+                      {health === 'warn' && !crResult && (
+                        <button
+                          type="button"
+                          onClick={() => handleVerify(ref)}
+                          disabled={isVerifying}
+                          className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded hover:bg-indigo-100 disabled:opacity-50 transition-colors whitespace-nowrap"
+                        >
+                          {isVerifying ? 'Verifying...' : 'Verify via Crossref'}
+                        </button>
+                      )}
+                      <span className="text-xs" title={health === 'good' ? 'Looks complete' : 'May be missing year or too short'}>
+                        {health === 'good' ? '✓' : '⚠'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Crossref Side-by-Side Comparison UI */}
+                  {crResult && (
+                    <div className="mt-2 p-3 bg-indigo-50/50 rounded-lg border border-indigo-100 text-[10px]">
+                      {crResult.error ? (
+                        <div className="text-red-600 font-bold">Error: {crResult.error}</div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-indigo-100 pb-2 mb-2">
+                            <span className="font-bold text-indigo-900 flex items-center gap-1">
+                              <BookMarked className="w-3 h-3" />
+                              Crossref Match Found
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Original Parse</div>
+                              <div className="text-slate-600 font-mono leading-relaxed bg-white p-2 rounded border border-slate-200">
+                                {ref.text}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <div className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Crossref Data</div>
+                              <div className="space-y-1.5 bg-white p-2 rounded border border-indigo-200">
+                                <div><span className="font-bold text-indigo-900">Title:</span> <span className="text-indigo-800">{crResult.title}</span></div>
+                                <div><span className="font-bold text-indigo-900">Author:</span> <span className="text-indigo-800">{crResult.author}</span></div>
+                                <div><span className="font-bold text-indigo-900">DOI:</span> <a href={crResult.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{crResult.doi}</a></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end pt-2">
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptCrossref(ref, crResult)}
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded shadow-sm transition-colors"
+                            >
+                              Accept Crossref Format
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -257,7 +366,7 @@ function ReferencesPanel({
             <div className="bg-amber-50 border-t border-amber-100 px-3 py-2">
               <p className="text-[10px] text-amber-700 font-bold">
                 ⚠ {warnCount} reference{warnCount > 1 ? 's' : ''} may be incomplete (missing year or too short).
-                Use <button type="button" onClick={() => setShowRaw(true)} className="underline hover:text-amber-900">Edit Raw</button> to fix manually.
+                Use <button type="button" onClick={() => setShowRaw(true)} className="underline hover:text-amber-900">Edit Raw</button> or verify via Crossref.
               </p>
             </div>
           )}

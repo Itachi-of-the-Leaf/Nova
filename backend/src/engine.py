@@ -4,6 +4,7 @@ import os
 import json
 import re
 import hashlib
+import requests
 from sentence_transformers import SentenceTransformer, util
 
 # The model to use for AI extraction.
@@ -90,6 +91,73 @@ def parse_individual_references(refs_text: str) -> list:
     return [{"number": 1, "text": text}]
 
 
+# ==========================================
+# 1. CROSSREF CITATION VERIFIER
+# ==========================================
+def verify_citation_crossref(citation_text: str) -> dict:
+    """
+    Queries the Crossref /works endpoint for the best bibliographic match to
+    `citation_text` and returns a dict with keys: title, author, url, doi.
+
+    Includes a User-Agent and mailto to enter the Crossref 'Polite Pool' and
+    prevent connection errors. Handles direct DOI lookups if applicable.
+    """
+    # Regex for identifying a DOI: starts with 10. and contains a prefix/suffix
+    doi_pattern = r'\b(10\.\d{4,9}/[-._;()/:a-zA-Z0-9]+)\b'
+    doi_match = re.search(doi_pattern, citation_text)
+    
+    headers = {
+        "User-Agent": "NovaIntegrityBot/1.0 (mailto:integrity@projectnova.io)"
+    }
+
+    if doi_match:
+        # Direct DOI lookup is more reliable if it exists
+        doi = doi_match.group(1)
+        try:
+            res = requests.get(f"https://api.crossref.org/works/{doi}", headers=headers, timeout=10)
+            if res.status_code == 200:
+                item = res.json().get("message", {})
+                authors = item.get("author", [])
+                author_str = ", ".join(f"{a.get('given', '')} {a.get('family', '')}".strip() for a in authors)
+                return {
+                    "title":  " ".join(item.get("title", ["Unknown Title"])),
+                    "author": author_str or "Unknown Author",
+                    "url":    item.get("URL", ""),
+                    "doi":    item.get("DOI", ""),
+                }
+        except Exception:
+            pass # Fallback to search if direct lookup fails
+
+    # Search-based fallback
+    base_url = "https://api.crossref.org/works"
+    params = {
+        "query":  citation_text,
+        "rows":   1,
+        "select": "title,author,URL,DOI",
+    }
+    try:
+        response = requests.get(base_url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        items = data.get("message", {}).get("items", [])
+        if not items:
+            return {"error": "No results found for the given citation."}
+
+        item = items[0]
+        authors = item.get("author", [])
+        author_str = ", ".join(f"{a.get('given', '')} {a.get('family', '')}".strip() for a in authors)
+        return {
+            "title":  " ".join(item.get("title", ["Unknown Title"])),
+            "author": author_str or "Unknown Author",
+            "url":    item.get("URL", ""),
+            "doi":    item.get("DOI", ""),
+        }
+    except requests.exceptions.RequestException as exc:
+        return {"error": f"Error connecting to Crossref: {exc}"}
+    except (ValueError, KeyError) as exc:
+        return {"error": f"Failed to parse Crossref response: {exc}"}
+
+
 def extract_text_from_docx(file_path):
     """
     Extracts text from a .docx file, tagging headings by their DOCX style:
@@ -109,18 +177,78 @@ def extract_text_from_docx(file_path):
 
             style = para.style.name if para.style else ""
 
-            if style.startswith("Heading 1") or style == "Title":
-                extracted_paragraphs.append(f"@@H1@@{clean_text}@@END@@")
-            elif style.startswith("Heading 2"):
-                extracted_paragraphs.append(f"@@H2@@{clean_text}@@END@@")
-            elif style.startswith("Heading 3"):
-                extracted_paragraphs.append(f"@@H3@@{clean_text}@@END@@")
+            if style.startswith("Heading 1") or style == "Title" or style.startswith("Heading 2") or style.startswith("Heading 3"):
+                # We no longer inject @@Hn@@ inline tags
+                extracted_paragraphs.append(clean_text)
             else:
                 extracted_paragraphs.append(clean_text)
 
         return '\n'.join(extracted_paragraphs)
     except Exception as e:
         return f"An error occurred during extraction: {str(e)}"
+
+
+def extract_abstract_natively(text_content: str) -> str:
+    """
+    Slices the abstract from raw text using landmark detection.
+    Guarantees 100% deterministic extraction (no LLM rewriting).
+    """
+    text_lower = text_content.lower()
+    start_match = re.search(r'(?i)\babstract\b', text_content)
+    if not start_match:
+        return ""
+    
+    content_start = start_match.end()
+    # Skip any separator characters like colons or newlines
+    while content_start < len(text_content) and text_content[content_start] in (":", "\n", " ", "\r", "."):
+        content_start += 1
+        
+    # Landmarks for end of abstract
+    keywords_match = re.search(r'(?i)\bkeywords\b', text_content[content_start:])
+    intro_match = re.search(r'(?i)\bintroduction\b', text_content[content_start:])
+    
+    end_indices = []
+    if keywords_match: end_indices.append(content_start + keywords_match.start())
+    if intro_match: end_indices.append(content_start + intro_match.start())
+    
+    if not end_indices:
+        # If no landmarks, take up to 2500 chars (safe buffer for long abstracts)
+        return text_content[content_start:content_start + 2500].strip()
+    
+    return text_content[content_start:min(end_indices)].strip()
+
+
+# ==========================================
+# 1b. OCR ARTIFACT CLEANER
+# ==========================================
+def clean_ocr_artifacts(text: str) -> str:
+    """
+    Removes the pdfplumber OCR artifact '/0' that appears immediately after a
+    common English word (e.g. 'and/0' -> 'and').
+
+    Root cause: pdfplumber sometimes mis-decodes fi-ligatures (U+FB01 → '/')
+    in certain PDF fonts. The token 'and' followed by a ligature-prefixed word
+    (e.g. 'figure') collapses to 'and/0gure', then is further truncated to
+    'and/0' in the extraction buffer.
+
+    Regex strategy — word-boundary whitelist:
+      \\b(and|or|the|of|in|to|for|with|from|by|at|on|is|are|was|were|be|been)/0(?!\\d)
+
+      - \\b          : word boundary — the match must start at the beginning of a word
+      - (and|or|...) : whitelist of common English function words that are never
+                       used as single-character math variables
+      - /0           : the literal artifact string
+      - (?!\\d)       : negative lookahead — preserves '/01', '/05', etc.
+
+    Safety: single-letter variables (x/0, n/0) and numeric expressions (1/0,
+    f(n)/0) are completely unaffected because none of their left operands appear
+    in the whitelist.
+    """
+    _ARTIFACT_RE = re.compile(
+        r'\b(and|or|the|of|in|to|for|with|from|by|at|on|is|are|was|were|be|been)/0(?!\d)',
+        re.IGNORECASE,
+    )
+    return _ARTIFACT_RE.sub(r'\1', text)
 
 
 
@@ -167,17 +295,29 @@ def get_document_metadata(text_content):
             text = '\n'.join(inner).strip()
         return json.loads(text)
 
-    head_text = text_content[:3000]
-    prompt_head = f"""You are a rigid Data Extractor. Extract the Title, Authors, and Abstract.
-CRITICAL INSTRUCTIONS:
-1. For Authors, extract the FULL HUMAN NAMES cleanly. Do NOT include email addresses, university affiliations, or numbers.
-2. You MUST copy the Abstract EXACTLY character-for-character. Do not fix typos.
+    head_text = text_content[:10000] # Provide enough context to capture sections
+    prompt_head = f"""You are a strict, deterministic Data Extractor.
+Extract the document's semantics into a Strict JSON Object.
 
-Return ONLY valid JSON:
+CRITICAL INSTRUCTIONS:
+1. TITLE: Ignore header artifacts such as 'Research paper', 'Article', 'Short Communication', or journal names/logos. Extract the semantic academic title of the work.
+2. AUTHORS: Extract the FULL HUMAN NAMES cleanly. Do NOT include email addresses, university affiliations, or numbers.
+3. ABSTRACT: Extract the entire abstract character-for-character. 
+   - Do NOT stop at line breaks or paragraph breaks. 
+   - Continue extracting until you explicitly reach the word 'Keywords:' or 'Introduction'.
+   - Do NOT rephrase, rewrite, or correct anything.
+4. SECTIONS: Identify major sections (Introduction, Methods, Results, Conclusion). Do NOT use inline @@ tags.
+
+Return ONLY valid JSON matching this schema exactly:
 {{
-    "title": "exact title string",
-    "authors": "Full Name 1, Full Name 2",
-    "abstract": "exact abstract string"
+    "metadata": {{
+        "title": "exact title string",
+        "authors": "Full Name 1, Full Name 2"
+    }},
+    "abstract": "exact abstract string",
+    "sections": [
+        {{"heading": "Heading Name", "content": "Section content..."}}
+    ]
 }}
 TEXT:
 {head_text}
@@ -192,9 +332,27 @@ TEXT:
         raw_content = res_head['message']['content']
         head_data = _safe_json_parse(raw_content)
 
-        metadata["title"]    = flatten_to_string(head_data.get("title", ""))
-        metadata["authors"]  = flatten_to_string(head_data.get("authors", ""))
-        metadata["abstract"] = flatten_to_string(head_data.get("abstract", ""))
+        metadata_field = head_data.get("metadata", {})
+        metadata["title"]    = flatten_to_string(metadata_field.get("title", ""))
+        metadata["authors"]  = flatten_to_string(metadata_field.get("authors", ""))
+        
+        # USE NATIVE EXTRACTION AS PRIMARY OR FALLBACK FOR ABSTRACT
+        llm_abstract = flatten_to_string(head_data.get("abstract", ""))
+        native_abstract = extract_abstract_natively(text_content)
+        
+        # If LLM truncated or native is significantly longer/better, prefer native
+        if len(native_abstract) > len(llm_abstract) * 1.2 or not llm_abstract:
+            metadata["abstract"] = native_abstract
+        else:
+            metadata["abstract"] = llm_abstract
+            
+        # Format the sections array back into the expected plain text or pass it structured
+        sections = head_data.get("sections", [])
+        if sections:
+            metadata["headings"] = "\n".join([str(s.get("heading", "")) for s in sections])
+        else:
+            metadata["headings"] = "No standard headings detected."
+            
     except Exception as e:
         print(f"Header Extraction Failed: {e}")
         print(f"  Raw LLM output: {res_head['message']['content'][:300] if 'res_head' in dir() else 'N/A'}")

@@ -38,12 +38,54 @@ class GenerateRequest(BaseModel):
     metadata: dict
     raw_text: str
 
+class CrossrefRequest(BaseModel):
+    citation: str
+
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
 @app.get("/")
 async def root():
     return {"message": "N.O.V.A. AI Engine is online and ready!"}
+
+
+@app.post("/api/verify-citation")
+async def verify_citation(req: CrossrefRequest):
+    """
+    Backend proxy to handle citation verification and bypass CORS.
+    Branches logic based on DOI presence.
+    """
+    try:
+        citation_text = req.citation
+        # 1. Regex to search for a DOI
+        doi_pattern = r'\b(10\.\d{4,9}/[-._;()/:a-zA-Z0-9]+)\b'
+        doi_match = re.search(doi_pattern, citation_text)
+        
+        headers = {"User-Agent": "NovaBot/1.0 (mailto:integrity@projectnova.io)"}
+
+        if doi_match:
+            # 2. Logic: Direct DOI Path Lookup
+            doi = doi_match.group(1)
+            response = requests.get(f"https://api.crossref.org/works/{doi}", headers=headers, timeout=10)
+        else:
+            # 3. Logic: Bibliographic Query Fallback
+            params = {
+                "query.bibliographic": citation_text,
+                "rows": 1,
+                "select": "title,author,URL,DOI"
+            }
+            response = requests.get("https://api.crossref.org/works", params=params, headers=headers, timeout=10)
+        
+        response.raise_for_status()
+        return response.json()
+
+    except requests.exceptions.RequestException as exc:
+        # 4. Constraint: Clean 500 error for unreachable network
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Crossref network unreachable: {str(exc)}"}
+        )
+
 
 
 @app.post("/upload")

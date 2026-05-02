@@ -12,9 +12,84 @@ from sentence_transformers import SentenceTransformer, util
 #   export OLLAMA_MODEL=llama3  (Mac/Linux)
 OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'phi3:mini')
 
+
 # ==========================================
-# 1. TEXT EXTRACTION
+# 0. REFERENCE PARSER (Standalone Helper)
 # ==========================================
+def parse_individual_references(refs_text: str) -> list:
+    """
+    Parses a raw references block into a structured list of dicts:
+      [{"number": 1, "text": "Author et al..."}, ...]
+
+    Tries four strategies in order:
+      1. [N] IEEE-style numeric
+      2. N. / N) numbered list
+      3. Blank-line-separated paragraphs
+      4. Hanging indent simulation (lines starting with capital letters)
+    """
+    if not refs_text or "No references section found" in refs_text:
+        return []
+
+    text = refs_text.strip()
+
+    # Strategy 1: [N] format
+    if re.search(r'^\[\d+\]', text, re.MULTILINE):
+        entries = re.split(r'(?=^\[\d+\])', text, flags=re.MULTILINE)
+        result = []
+        for entry in entries:
+            entry = entry.strip()
+            m = re.match(r'^\[(\d+)\]\s*(.*)', entry, re.DOTALL)
+            if m:
+                result.append({"number": int(m.group(1)), "text": m.group(2).strip()})
+        if len(result) > 1:
+            return result
+
+    # Strategy 2: N. or N) format
+    if re.search(r'^\d+[.)]\s', text, re.MULTILINE):
+        entries = re.split(r'(?=^\d+[.)]\s)', text, flags=re.MULTILINE)
+        result = []
+        for entry in entries:
+            entry = entry.strip()
+            m = re.match(r'^(\d+)[.)]\s*(.*)', entry, re.DOTALL)
+            if m:
+                result.append({"number": int(m.group(1)), "text": m.group(2).strip()})
+        if len(result) > 1:
+            return result
+
+    # Strategy 3: blank-line-separated paragraphs
+    paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
+    if len(paragraphs) > 1:
+        return [{"number": i + 1, "text": p} for i, p in enumerate(paragraphs)]
+
+    # Strategy 4: APA-style wrapped without blank lines (looks for (YYYY) to split)
+    # If lines are wrapped, a new reference usually starts with a capitalized name and has a (Year) near the start.
+    # A simple fallback: assume each line that isn't indented or just a URL is a new reference.
+    lines = text.split('\n')
+    result = []
+    current_ref = ""
+    
+    for line in lines:
+        stripped = line.strip()
+        if not stripped: continue
+        
+        # Heuristic: if line starts with uppercase letter and doesn't look like a URL continuation
+        if stripped[0].isupper() and not stripped.startswith('http') and len(stripped) > 10:
+            if current_ref:
+                result.append(current_ref)
+            current_ref = stripped
+        else:
+            current_ref += " " + stripped
+            
+    if current_ref:
+        result.append(current_ref)
+        
+    if len(result) > 1:
+         return [{"number": i + 1, "text": r.strip()} for i, r in enumerate(result)]
+
+    # Fallback: whole block as a single entry
+    return [{"number": 1, "text": text}]
+
+
 def extract_text_from_docx(file_path):
     """
     Extracts text from a .docx file, tagging headings by their DOCX style:
@@ -59,7 +134,7 @@ def get_document_metadata(text_content):
     """
     metadata = {
         "title": "", "authors": "", "abstract": "",
-        "headings": "", "references": ""
+        "headings": "", "references": "", "references_list": []
     }
 
     # ==========================================
@@ -126,15 +201,32 @@ TEXT:
 
 
     # --- PASS 2: RegEx References (Unbreakable) ---
-    # LLMs truncate long lists. We use regex to find the "References" section 
+    # LLMs truncate long lists. We use regex to find the "References" section
     # and grab literally everything until the end of the document.
     try:
-        # Look for "References", optionally followed by a colon or newline
-        ref_match = re.search(r'(?i)^\s*references\b[\s:]*(.*)', text_content, re.MULTILINE | re.DOTALL)
+        # Strip DOCX heading markers BEFORE searching — lines tagged as headings
+        # start with @@H1@@ etc., so the plain '^references' pattern never matches.
+        clean_for_refs = re.sub(r'@@H[123]@@(.*?)@@END@@', r'\1', text_content)
+
+        # Strategy 1: explicit "References" section heading
+        ref_match = re.search(r'(?i)^\s*references\b[\s:]*(.*)', clean_for_refs, re.MULTILINE | re.DOTALL)
         if ref_match:
             metadata["references"] = ref_match.group(1).strip()
         else:
-            metadata["references"] = "No references section found."
+            # Strategy 2: scan from bottom for first [1] / 1. entry
+            lines = clean_for_refs.split('\n')
+            ref_start = -1
+            for i in range(len(lines) - 1, -1, -1):
+                stripped = lines[i].strip()
+                if re.match(r'^\[1\]|^1[.)\s]', stripped):
+                    ref_start = i
+                    break
+            if ref_start >= 0:
+                metadata["references"] = '\n'.join(lines[ref_start:]).strip()
+            else:
+                metadata["references"] = "No references section found."
+
+        metadata["references_list"] = parse_individual_references(metadata["references"])
     except Exception as e:
         print(f"Reference Extraction Failed: {e}")
 

@@ -337,6 +337,60 @@ def _strip_preamble(body: str, metadata: dict) -> str:
     return body
 
 
+
+def _linkify_citations(body: str) -> str:
+    """
+    Post-process Pandoc LaTeX body so that:
+      • [N] citation markers in body text → \\hyperref[ref:N]{[N]}
+      • Reference entries in the References section get \\label{ref:N}
+
+    The \\hyperref package is already loaded in template.tex, so clicking [N]
+    in the generated PDF will jump to the matching reference entry.
+    """
+    # ── Split at the References section boundary ─────────────────────────────
+    ref_section_re = re.compile(
+        r'(\\(?:section|subsection)\*?\s*\{[^}]*[Rr]eferences[^}]*\})',
+        re.DOTALL
+    )
+    ref_match = ref_section_re.search(body)
+
+    if ref_match:
+        pre_refs     = body[:ref_match.start()]
+        ref_header   = ref_match.group(1)
+        post_refs    = body[ref_match.end():]
+
+        # ── Label reference entries ───────────────────────────────────────────
+        # Case A: [N] at start of line  →  \label{ref:N}[N]
+        def _add_label_bracket(m):
+            return f'\\label{{ref:{m.group(1)}}}[{m.group(1)}]'
+        labeled = re.sub(r'(?m)^\[(\d+)\]', _add_label_bracket, post_refs)
+
+        # Case B: N. or N) at start of line (if [N] form not found)
+        if labeled == post_refs:
+            def _add_label_numbered(m):
+                return f'\\label{{ref:{m.group(1)}}}{m.group(1)}{m.group(2)}'
+            labeled = re.sub(r'(?m)^(\d+)([.)]\s)', _add_label_numbered, post_refs)
+
+        refs_part = ref_header + labeled
+    else:
+        pre_refs  = body
+        refs_part = ''
+
+    # ── Linkify [N] in body text (before references section) ─────────────────
+    def _make_link(m):
+        n = m.group(1)
+        return f'\\hyperref[ref:{n}]{{[{n}]}}'
+
+    # Standard [N] form
+    linked = re.sub(r'\[(\d{1,4})\]', _make_link, pre_refs)
+    # Pandoc sometimes escapes brackets as {[}N{]}
+    linked = re.sub(
+        r'\{\\?\[\}(\d{1,4})\{\\?\]\}',
+        lambda m: f'\\hyperref[ref:{m.group(1)}]{{[{m.group(1)}]}}',
+        linked
+    )
+
+    return linked + refs_part
 def _long_path(p: str) -> str:
     """Resolve Windows 8.3 short paths (e.g. ANIKET~1) to their full long form.
 
@@ -346,6 +400,7 @@ def _long_path(p: str) -> str:
     """
     if os.name != 'nt':
         return p
+
     try:
         import ctypes
         buf = ctypes.create_unicode_buffer(512)
@@ -403,7 +458,10 @@ def generate_pdf(metadata, body_text):
         # Step 2: Strip Preamble (Title, Authors, Abstract) to prevent duplication
         pandoc_body = _strip_preamble(pandoc_body, metadata)
 
-        # Step 3: Read and populate template.tex
+        # Step 2b: Linkify [N] citations → clickable hyperlinks in the PDF
+        pandoc_body = _linkify_citations(pandoc_body)
+
+
         with open(TEMPLATE_TEX, "r", encoding="utf-8") as f:
             tex_content = f.read()
 
